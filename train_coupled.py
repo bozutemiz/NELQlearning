@@ -65,13 +65,13 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, Qoptimizer, Voptimi
     expected_v_value = reward + gamma * next_v_value * (1 - done)
 
     # loss = F.smooth_l1_loss(q_value,  Variable(expected_q_value.data))
-    #Qloss = F.mse_loss(q_value,  Variable(expected_q_value.data))
-    #Vloss = F.mse_loss(v_values,  Variable(expected_v_value.data))
+    Qloss = F.mse_loss(q_value,  Variable(expected_q_value.data))
+    Vloss = F.mse_loss(v_values,  Variable(expected_v_value.data))
 
     difference = max_q_value.sub(v_values.transpose(0, 1))
     QVloss = F.mse_loss(difference,  qv_target)
 
-    #totloss = Qloss + Vloss + QVloss
+    totloss = Qloss + Vloss + QVloss
 
     # print('before Q')
     # cnt = 0
@@ -89,7 +89,7 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, Qoptimizer, Voptimi
 
     # print('cnt:',cnt)	
     Qoptimizer.zero_grad()
-    QVloss.backward()
+    totloss.backward()
     Qoptimizer.step()
 
     # print('after Q')
@@ -111,7 +111,7 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, Qoptimizer, Voptimi
     #Voptimizer.step()
 
     # return Qloss, Vloss, QVloss
-    return QVloss
+    return totloss
 
 
 def plot_setup():
