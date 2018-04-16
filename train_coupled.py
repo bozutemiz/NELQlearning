@@ -125,19 +125,19 @@ def plot_setup():
     fig.canvas.draw()
 
     # def update(frame_idx, rewards, Qlosses, Vlosses, QVlosses):
-    def update(frame_idx, rewards, QVlosses)
+    def update(frame_idx, rewards, QVlosses):
         p1.set_xdata(range(len(rewards)))
         p1.set_ydata(rewards)
 
         ax1.set_title('frame %s. reward: %s' %
                       (frame_idx, np.mean([rewards[i] for i in range(-10, 0)])))
-        p2.set_xdata(range(len(Qlosses)))
-        p2.set_ydata(Qlosses)
+        p2.set_xdata(range(len(QVlosses)))
+        p2.set_ydata(QVlosses)
         ax1.set_xlim([0, len(rewards)])
         ax1.set_ylim([min(rewards), max(rewards) + 10])
-        ax2.set_xlim([0, len(Qlosses)])
-        ax2.set_ylim([min(Qlosses), max(Qlosses)])
-        print(max(Qlosses))
+        ax2.set_xlim([0, len(QVlosses)])
+        ax2.set_ylim([min(QVlosses), max(QVlosses)])
+        print(max(QVlosses))
         ax2.set_yscale('log')
         plt.draw()
         plt.pause(0.0001)
@@ -148,7 +148,8 @@ def plot_setup():
     return update, save
 
 
-def plot(frame_idx, rewards, Qlosses, Vlosses, QVlosses):
+# def plot(frame_idx, rewards, Qlosses, Vlosses, QVlosses):
+def plot(frame_idx, rewards, QVlosses):
     # clear_output(True)
     fig = plt.figure(figsize=(20, 5))
     plt.subplot(121)
@@ -156,8 +157,8 @@ def plot(frame_idx, rewards, Qlosses, Vlosses, QVlosses):
               (frame_idx, np.mean([rewards[i] for i in range(-10, 0)])))
     plt.plot(rewards)
     plt.subplot(122)
-    plt.title('Qloss')
-    plt.plot(Qlosses)
+    plt.title('QVloss')
+    plt.plot(QVlosses)
     plt.show()
 
 
@@ -172,9 +173,10 @@ def get_epsilon(i, EPS_START, EPS_END, EPS_DECAY_START, EPS_DECAY_END):
     return epsilon
 
 
-def save_training_run(Qlosses, Vlosses, QVlosses, rewards, agent, save_fn, model_path, plot_path):
+# def save_training_run(Qlosses, Vlosses, QVlosses, rewards, agent, save_fn, model_path, plot_path):
+def save_training_run(QVlosses, rewards, agent, save_fn, model_path, plot_path):
     with open('outputs/train_stats.pkl', 'wb') as f:
-        cPickle.dump((Qlosses, Vlosses, QVlosses, rewards), f)
+        cPickle.dump((QVlosses, rewards), f)
 
     agent.save(filepath=model_path)
 
