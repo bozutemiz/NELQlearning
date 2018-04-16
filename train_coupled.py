@@ -49,8 +49,9 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, Qoptimizer, Voptimi
     action = Variable(torch.LongTensor(action))
     reward = Variable(torch.FloatTensor(reward))
     done = Variable(torch.FloatTensor(done))
-    qv_target = Variable(torch.FloatTensor(np.float32(0)))
+    qv_target = Variable(torch.FloatTensor(np.zeros((64,64))))
 
+    # TODO: need to add randomnization for next q-value chosen 
     q_values = agent.Qpolicy(state)
     q_values_target = agent.Qtarget(next_state)
     q_value = q_values.gather(1, action.unsqueeze(1)).squeeze(1)
@@ -302,6 +303,7 @@ def main():
     state_size = (config2.vision_range*2 + 1)**2 * config2.color_num_dims + config2.scent_num_dims
     agent = RLCoupledAgent(env, state_size=state_size)
 
+    # TODO: need to initialize the weights correctly
     Qoptimizer = optim.Adam(list(agent.Qpolicy.parameters()) + list(agent.Vpolicy.parameters()),lr=agent_config['learning_rate'])
     #Qoptimizer = optim.Adam(agent.Qpolicy.parameters(),
     #    lr=agent_config['learning_rate'])
