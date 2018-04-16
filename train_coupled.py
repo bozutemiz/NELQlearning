@@ -44,10 +44,12 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, Qoptimizer, Voptimi
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
     state = Variable(torch.FloatTensor(np.float32(state)))
+    print('state:', state)
     next_state = Variable(torch.FloatTensor(np.float32(next_state)))
     action = Variable(torch.LongTensor(action))
     reward = Variable(torch.FloatTensor(reward))
     done = Variable(torch.FloatTensor(done))
+    qv_target = Variable(torch.FloatTensor(np.float32(0)))
 
     q_values = agent.Qpolicy(state)
     q_values_target = agent.Qtarget(next_state)
@@ -61,20 +63,48 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, Qoptimizer, Voptimi
     expected_v_value = reward + gamma * next_v_value * (1 - done)
 
     # loss = F.smooth_l1_loss(q_value,  Variable(expected_q_value.data))
-    Qloss = F.mse_loss(q_value,  Variable(expected_q_value.data))
-    Vloss = F.mse_loss(v_values,  Variable(expected_v_value.data))
-    QVloss = F.mse_loss(q_value,  v_values)
+    #Qloss = F.mse_loss(q_value,  Variable(expected_q_value.data))
+    #Vloss = F.mse_loss(v_values,  Variable(expected_v_value.data))
+    QVloss = F.mse_loss(q_value - v_values,  qv_target)
 
-    totQloss = Qloss + QVloss
-    totVloss = Vloss + QVloss
+    #totloss = Qloss + Vloss + QVloss
 
+    print('before Q')
+    cnt = 0
+    for param in agent.Qpolicy.parameters():
+    	if cnt == 0:
+    		print(param.data)
+    	cnt += 1
+
+    print('before V')
+    cnt = 0
+    for param in agent.Vpolicy.parameters():
+    	if cnt == 0:
+    		print(param.data)
+    	cnt += 1
+
+    print('cnt:',cnt)	
     Qoptimizer.zero_grad()
-    totQloss.backward(retain_variables=True)
+    QVloss.backward()
     Qoptimizer.step()
 
-    Voptimizer.zero_grad()
-    totVloss.backward()
-    Voptimizer.step()
+    print('after Q')
+    cnt = 0
+    for param in agent.Qpolicy.parameters():
+    	if cnt == 0:
+    		print(param.data)
+    	cnt += 1
+
+    print('after V')
+    cnt = 0
+    for param in agent.Vpolicy.parameters():
+    	if cnt == 0:
+    		print(param.data)
+    	cnt += 1
+
+    #Voptimizer.zero_grad()
+    #totVloss.backward()
+    #Voptimizer.step()
 
     return Qloss, Vloss, QVloss
 
@@ -272,10 +302,12 @@ def main():
     state_size = (config2.vision_range*2 + 1)**2 * config2.color_num_dims + config2.scent_num_dims
     agent = RLCoupledAgent(env, state_size=state_size)
 
-    Qoptimizer = optim.Adam(agent.Qpolicy.parameters(),
-        lr=agent_config['learning_rate'])
-    Voptimizer = optim.Adam(agent.Vpolicy.parameters(),
-        lr=agent_config['learning_rate'])
+    Qoptimizer = optim.Adam(list(agent.Qpolicy.parameters()) + list(agent.Vpolicy.parameters()),lr=agent_config['learning_rate'])
+    #Qoptimizer = optim.Adam(agent.Qpolicy.parameters(),
+    #    lr=agent_config['learning_rate'])
+    Voptimizer = []
+    #optim.Adam(agent.Vpolicy.parameters(),
+    #    lr=agent_config['learning_rate'])
 
     setup_output_dir()
     train(agent, env, [0, 1, 2, 3], Qoptimizer, Voptimizer)
