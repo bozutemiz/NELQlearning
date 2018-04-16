@@ -210,8 +210,8 @@ class RLCoupledAgent(BaseAgent):
     def create_current_frame(self):
         vis = self.vision().flatten()
         smell = self.scent()
-        #return np.concatenate([vis, smell, self.prev_action])
-        return np.concatenate([vis, smell])
+        return np.concatenate([vis, smell, self.prev_action])
+        #return np.concatenate([vis, smell])
 
     def get_state(self):
         if len(self.prev_states) > 0:

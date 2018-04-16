@@ -39,12 +39,12 @@ class ReplayBuffer(object):
         return len(self.buffer)
 
 
-def compute_td_loss(batch_size, agent, replay_buffer, gamma, Optimizer):
+def compute_td_loss(batch_size, agent, replay_buffer, gamma, optimizer):
     # Sample a random minibatch from the replay history.
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
     state = Variable(torch.FloatTensor(np.float32(state)))
-    # print('state:', state)
+    #print('state:', state)
     next_state = Variable(torch.FloatTensor(np.float32(next_state)))
     action = Variable(torch.LongTensor(action))
     reward = Variable(torch.FloatTensor(reward))
@@ -88,9 +88,9 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, Optimizer):
     # 	cnt += 1
 
     # print('cnt:',cnt)	
-    Optimizer.zero_grad()
+    optimizer.zero_grad()
     totloss.backward()
-    Optimizer.step()
+    optimizer.step()
 
     # print('after Q')
     # cnt = 0
@@ -312,8 +312,8 @@ def setup_output_dir():
 def main():
     env = Environment(config2)
     from agent import actions
-    #state_size = (config2.vision_range*2 + 1)**2 * config2.color_num_dims + config2.scent_num_dims + len(actions)
-    state_size = (config2.vision_range*2 + 1)**2 * config2.color_num_dims + config2.scent_num_dims
+    state_size = (config2.vision_range*2 + 1)**2 * config2.color_num_dims + config2.scent_num_dims + len(actions)
+    #state_size = (config2.vision_range*2 + 1)**2 * config2.color_num_dims + config2.scent_num_dims
     agent = RLCoupledAgent(env, state_size=state_size)
 
     # TODO: need to initialize the weights correctly
