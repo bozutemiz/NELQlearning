@@ -124,7 +124,8 @@ def plot_setup():
     print("SETUP")
     fig.canvas.draw()
 
-    def update(frame_idx, rewards, Qlosses, Vlosses, QVlosses):
+    # def update(frame_idx, rewards, Qlosses, Vlosses, QVlosses):
+    def update(frame_idx, rewards, QVlosses)
         p1.set_xdata(range(len(rewards)))
         p1.set_ydata(rewards)
 
@@ -243,12 +244,13 @@ def train(agent, env, actions, Qoptimizer, Voptimizer):
         if training_steps % policy_update_frequency == 0:
             if batch_size < len(replay):
                 # Compute loss and update parameters.
-                Qloss, Vloss, QVloss = compute_td_loss(
+                # Qloss, Vloss, QVloss = compute_td_loss(
+                QVloss = compute_td_loss(
                     batch_size, agent, replay, discount_factor, Qoptimizer, Voptimizer)
                 #Vloss = compute_td_Vloss(
                 #    batch_size, agent, replay, discount_factor, Voptimizer)
-                Qlosses.append(Qloss.data[0])
-                Vlosses.append(Vloss.data[0])
+                # Qlosses.append(Qloss.data[0])
+                # Vlosses.append(Vloss.data[0])
                 QVlosses.append(QVloss.data[0])
 
         if training_steps % 200 == 0 and training_steps > 0:
@@ -259,9 +261,11 @@ def train(agent, env, actions, Qoptimizer, Voptimizer):
             print("train reward = ", tr_reward)
             print('')
             if training_steps < 100000:
-                plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses)
+                plt_fn(training_steps, rewards, QVlosses)
+                # plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses)
             elif training_steps % 50000 == 0:
-                plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses)
+                # plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses)
+                plt_fn(training_steps, rewards, QVlosses)
 
 
         if training_steps % target_update_frequency == 0:
@@ -271,7 +275,8 @@ def train(agent, env, actions, Qoptimizer, Voptimizer):
         p_path = 'outputs/plots/NELQ_plot_' + str(training_steps) + '.png'
 
         if training_steps % num_steps_save_training_run == 0:
-            save_training_run(Qlosses, Vlosses, QVlosses, rewards, agent, save_fn, model_path, p_path)
+            # save_training_run(Qlosses, Vlosses, QVlosses, rewards, agent, save_fn, model_path, p_path)
+            save_training_run(QVlosses, rewards, agent, save_fn, model_path, p_path)
 
     position = agent.position()
     painter = nel.MapVisualizer(env.simulator, config2, (
@@ -284,7 +289,8 @@ def train(agent, env, actions, Qoptimizer, Voptimizer):
     with open('outputs/eval_reward.pkl', 'w') as f:
         cPickle.dump(eval_reward, f)
 
-    save_training_run(Qlosses, Vlosses, QVlosses, rewards, agent, save_fn, model_path, p_path)
+    # save_training_run(Qlosses, Vlosses, QVlosses, rewards, agent, save_fn, model_path, p_path)
+    save_training_run(QVlosses, rewards, agent, save_fn, model_path, p_path)
     print(eval_reward)
 
 
