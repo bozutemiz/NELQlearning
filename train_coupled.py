@@ -110,36 +110,60 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, optimizer):
     #totVloss.backward()
     #Voptimizer.step()
 
-    # return Qloss, Vloss, QVloss
-    return totloss
+    return Qloss, Vloss, QVloss, totloss
+    #return totloss
 
 
 def plot_setup():
     # plt.ion()
     fig = plt.figure()
-    ax1 = fig.add_subplot(121)
-    ax2 = fig.add_subplot(122)
+    ax1 = fig.add_subplot(151)
+    ax2 = fig.add_subplot(152)
+    ax3 = fig.add_subplot(153)
+    ax4 = fig.add_subplot(154)
+    ax5 = fig.add_subplot(155)
     p1, = ax1.plot([])
     p2, = ax2.plot([])
-    ax2.set_title('loss')
+    p3, = ax3.plot([])
+    p4, = ax4.plot([])
+    p5, = ax5.plot([])
+    ax2.set_title('Q loss')
+    ax3.set_title('V loss')
+    ax4.set_title('QV loss')
+    ax5.set_title('Total loss')
     print("SETUP")
     fig.canvas.draw()
 
-    # def update(frame_idx, rewards, Qlosses, Vlosses, QVlosses):
-    def update(frame_idx, rewards, losses):
+    def update(frame_idx, rewards, Qlosses, Vlosses, QVlosses, totlosses):
+    #def update(frame_idx, rewards, losses):
         p1.set_xdata(range(len(rewards)))
         p1.set_ydata(rewards)
 
         ax1.set_title('frame %s. reward: %s' %
                       (frame_idx, np.mean([rewards[i] for i in range(-10, 0)])))
-        p2.set_xdata(range(len(losses)))
-        p2.set_ydata(losses)
+        p2.set_xdata(range(len(Qlosses)))
+        p2.set_ydata(Qlosses)
+        p3.set_xdata(range(len(Vlosses)))
+        p3.set_ydata(Vlosses)
+        p4.set_xdata(range(len(QVlosses)))
+        p4.set_ydata(QVlosses)
+        p5.set_xdata(range(len(totlosses)))
+        p5.set_ydata(totlosses)
         ax1.set_xlim([0, len(rewards)])
         ax1.set_ylim([min(rewards), max(rewards) + 10])
-        ax2.set_xlim([0, len(losses)])
-        ax2.set_ylim([min(losses), max(losses)])
+        ax2.set_xlim([0, len(Qlosses)])
+        ax2.set_ylim([min(Qlosses), max(Qlosses)])
+        ax3.set_xlim([0, len(Vlosses)])
+        ax3.set_ylim([min(Vlosses), max(Vlosses)])
+        ax4.set_xlim([0, len(QVlosses)])
+        ax4.set_ylim([min(QVlosses), max(QVlosses)])
+        ax5.set_xlim([0, len(totlosses)])
+        ax5.set_ylim([min(totlosses), max(totlosses)])
         # print(max(QVlosses))
         ax2.set_yscale('log')
+        ax3.set_yscale('log')
+        ax4.set_yscale('log')
+        ax5.set_yscale('log')
         plt.draw()
         plt.pause(0.0001)
 
@@ -174,10 +198,11 @@ def get_epsilon(i, EPS_START, EPS_END, EPS_DECAY_START, EPS_DECAY_END):
     return epsilon
 
 
-# def save_training_run(Qlosses, Vlosses, QVlosses, rewards, agent, save_fn, model_path, plot_path):
-def save_training_run(losses, rewards, agent, save_fn, model_path, plot_path):
+def save_training_run(Qlosses, Vlosses, QVlosses, totlosses, rewards, agent, save_fn, model_path, plot_path):
+#def save_training_run(losses, rewards, agent, save_fn, model_path, plot_path):
     with open('outputs/train_stats.pkl', 'wb') as f:
-        cPickle.dump((losses, rewards), f)
+        #cPickle.dump((losses, rewards), f)
+        cPickle.dump((Qlosses, Vlosses, QVlosses, totlosses, rewards), f)
 
     agent.save(filepath=model_path)
 
@@ -248,28 +273,31 @@ def train(agent, env, actions, optimizer):
         if training_steps % policy_update_frequency == 0:
             if batch_size < len(replay):
                 # Compute loss and update parameters.
-                # Qloss, Vloss, QVloss = compute_td_loss(
-                totloss = compute_td_loss(
+                Qloss, Vloss, QVloss, totloss = compute_td_loss(
+                #totloss = compute_td_loss(
                     batch_size, agent, replay, discount_factor, optimizer)
                 #Vloss = compute_td_Vloss(
                 #    batch_size, agent, replay, discount_factor, Voptimizer)
-                # Qlosses.append(Qloss.data[0])
-                # Vlosses.append(Vloss.data[0])
+                Qlosses.append(Qloss.data[0])
+                Vlosses.append(Vloss.data[0])
+                QVlosses.append(QVloss.data[0])
                 Totlosses.append(totloss.data[0])
 
         if training_steps % 200 == 0 and training_steps > 0:
             print('step = ', training_steps)
-            # print("Qloss = ", Qloss.data[0])
-            # print("Vloss = ", Vloss.data[0])
+            print("Qloss = ", Qloss.data[0])
+            print("Vloss = ", Vloss.data[0])
+            print("QVloss = ", QVloss.data[0])
             print("totloss = ", totloss.data[0])
             print("train reward = ", tr_reward)
             print('')
             if training_steps < 100000:
-                plt_fn(training_steps, rewards, Totlosses)
-                # plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses)
+                #plt_fn(training_steps, rewards, Totlosses)
+                if training_steps % 2000 == 0 and training_steps > 0:
+                	plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses, Totlosses)
             elif training_steps % 50000 == 0:
-                # plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses)
-                plt_fn(training_steps, rewards, Totlosses)
+                plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses, Totlosses)
+                #plt_fn(training_steps, rewards, Totlosses)
 
 
         if training_steps % target_update_frequency == 0:
@@ -279,8 +307,8 @@ def train(agent, env, actions, optimizer):
         p_path = 'outputs/plots/NELQ_plot_' + str(training_steps) + '.png'
 
         if training_steps % num_steps_save_training_run == 0:
-            # save_training_run(Qlosses, Vlosses, QVlosses, rewards, agent, save_fn, model_path, p_path)
-            save_training_run(Totlosses, rewards, agent, save_fn, model_path, p_path)
+            save_training_run(Qlosses, Vlosses, QVlosses, Totlosses, rewards, agent, save_fn, model_path, p_path)
+            #save_training_run(Totlosses, rewards, agent, save_fn, model_path, p_path)
 
     position = agent.position()
     painter = nel.MapVisualizer(env.simulator, config2, (
@@ -293,8 +321,8 @@ def train(agent, env, actions, optimizer):
     with open('outputs/eval_reward.pkl', 'w') as f:
         cPickle.dump(eval_reward, f)
 
-    # save_training_run(Qlosses, Vlosses, QVlosses, rewards, agent, save_fn, model_path, p_path)
-    save_training_run(Totlosses, rewards, agent, save_fn, model_path, p_path)
+    save_training_run(Qlosses, Vlosses, QVlosses, Totlosses, rewards, agent, save_fn, model_path, p_path)
+    #save_training_run(Totlosses, rewards, agent, save_fn, model_path, p_path)
     # print(eval_reward)
 
 
