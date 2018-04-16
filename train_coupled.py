@@ -44,7 +44,7 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, Qoptimizer, Voptimi
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
     state = Variable(torch.FloatTensor(np.float32(state)))
-    print('state:', state)
+    # print('state:', state)
     next_state = Variable(torch.FloatTensor(np.float32(next_state)))
     action = Variable(torch.LongTensor(action))
     reward = Variable(torch.FloatTensor(reward))
@@ -55,9 +55,10 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, Qoptimizer, Voptimi
     q_values = agent.Qpolicy(state)
     q_values_target = agent.Qtarget(next_state)
     q_value = q_values.gather(1, action.unsqueeze(1)).squeeze(1)
-    next_q_value = q_values_target.max(1)[0]
+    next_q_value = q_values_target.max(1)[0] #introduce randomnization
     expected_q_value = reward + gamma * next_q_value * (1 - done)
 
+    max_q_value = q_values_target.max(1)[0]
     v_values = agent.Vpolicy(state)
     v_values_target = agent.Vtarget(next_state)
     next_v_value = v_values_target[0]
@@ -67,43 +68,43 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, Qoptimizer, Voptimi
     #Qloss = F.mse_loss(q_value,  Variable(expected_q_value.data))
     #Vloss = F.mse_loss(v_values,  Variable(expected_v_value.data))
 
-    difference = q_value.sub(v_values.transpose(0, 1))
+    difference = max_q_value.sub(v_values.transpose(0, 1))
     QVloss = F.mse_loss(difference,  qv_target)
 
     #totloss = Qloss + Vloss + QVloss
 
-    print('before Q')
-    cnt = 0
-    for param in agent.Qpolicy.parameters():
-    	if cnt == 0:
-    		print(param.data)
-    	cnt += 1
+    # print('before Q')
+    # cnt = 0
+    # for param in agent.Qpolicy.parameters():
+    # 	if cnt == 0:
+    # 		# print(param.data)
+    # 	cnt += 1
 
-    print('before V')
-    cnt = 0
-    for param in agent.Vpolicy.parameters():
-    	if cnt == 0:
-    		print(param.data)
-    	cnt += 1
+    # # print('before V')
+    # cnt = 0
+    # for param in agent.Vpolicy.parameters():
+    # 	if cnt == 0:
+    # 		# print(param.data)
+    # 	cnt += 1
 
-    print('cnt:',cnt)	
+    # print('cnt:',cnt)	
     Qoptimizer.zero_grad()
     QVloss.backward()
     Qoptimizer.step()
 
-    print('after Q')
-    cnt = 0
-    for param in agent.Qpolicy.parameters():
-    	if cnt == 0:
-    		print(param.data)
-    	cnt += 1
+    # print('after Q')
+    # cnt = 0
+    # for param in agent.Qpolicy.parameters():
+    # 	if cnt == 0:
+    # 		print(param.data)
+    # 	cnt += 1
 
-    print('after V')
-    cnt = 0
-    for param in agent.Vpolicy.parameters():
-    	if cnt == 0:
-    		print(param.data)
-    	cnt += 1
+    # # print('after V')
+    # cnt = 0
+    # for param in agent.Vpolicy.parameters():
+    # 	if cnt == 0:
+    # 		print(param.data)
+    # 	cnt += 1
 
     #Voptimizer.zero_grad()
     #totVloss.backward()
@@ -137,7 +138,7 @@ def plot_setup():
         ax1.set_ylim([min(rewards), max(rewards) + 10])
         ax2.set_xlim([0, len(QVlosses)])
         ax2.set_ylim([min(QVlosses), max(QVlosses)])
-        print(max(QVlosses))
+        # print(max(QVlosses))
         ax2.set_yscale('log')
         plt.draw()
         plt.pause(0.0001)
@@ -257,8 +258,8 @@ def train(agent, env, actions, Qoptimizer, Voptimizer):
 
         if training_steps % 200 == 0 and training_steps > 0:
             print('step = ', training_steps)
-            print("Qloss = ", Qloss.data[0])
-            print("Vloss = ", Vloss.data[0])
+            # print("Qloss = ", Qloss.data[0])
+            # print("Vloss = ", Vloss.data[0])
             print("QVloss = ", QVloss.data[0])
             print("train reward = ", tr_reward)
             print('')
@@ -293,7 +294,7 @@ def train(agent, env, actions, Qoptimizer, Voptimizer):
 
     # save_training_run(Qlosses, Vlosses, QVlosses, rewards, agent, save_fn, model_path, p_path)
     save_training_run(QVlosses, rewards, agent, save_fn, model_path, p_path)
-    print(eval_reward)
+    # print(eval_reward)
 
 
 # cumulative reward for training and test
