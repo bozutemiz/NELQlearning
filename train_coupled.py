@@ -49,7 +49,7 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, Qoptimizer, Voptimi
     action = Variable(torch.LongTensor(action))
     reward = Variable(torch.FloatTensor(reward))
     done = Variable(torch.FloatTensor(done))
-    qv_target = Variable(torch.FloatTensor(np.zeros((64,64))))
+    qv_target = Variable(torch.FloatTensor(1, batch_size).zero_())
 
     # TODO: need to add randomnization for next q-value chosen 
     q_values = agent.Qpolicy(state)
@@ -66,7 +66,9 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, Qoptimizer, Voptimi
     # loss = F.smooth_l1_loss(q_value,  Variable(expected_q_value.data))
     #Qloss = F.mse_loss(q_value,  Variable(expected_q_value.data))
     #Vloss = F.mse_loss(v_values,  Variable(expected_v_value.data))
-    QVloss = F.mse_loss(q_value - v_values,  qv_target)
+
+    difference = q_value.sub(v_values.transpose(0, 1))
+    QVloss = F.mse_loss(difference,  qv_target)
 
     #totloss = Qloss + Vloss + QVloss
 
@@ -107,7 +109,8 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, Qoptimizer, Voptimi
     #totVloss.backward()
     #Voptimizer.step()
 
-    return Qloss, Vloss, QVloss
+    # return Qloss, Vloss, QVloss
+    return QVloss
 
 
 def plot_setup():
