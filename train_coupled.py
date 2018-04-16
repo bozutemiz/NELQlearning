@@ -39,7 +39,7 @@ class ReplayBuffer(object):
         return len(self.buffer)
 
 
-def compute_td_loss(batch_size, agent, replay_buffer, gamma, Qoptimizer, Voptimizer):
+def compute_td_loss(batch_size, agent, replay_buffer, gamma, Optimizer):
     # Sample a random minibatch from the replay history.
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
@@ -88,9 +88,9 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, Qoptimizer, Voptimi
     # 	cnt += 1
 
     # print('cnt:',cnt)	
-    Qoptimizer.zero_grad()
+    Optimizer.zero_grad()
     totloss.backward()
-    Qoptimizer.step()
+    Optimizer.step()
 
     # print('after Q')
     # cnt = 0
@@ -126,18 +126,18 @@ def plot_setup():
     fig.canvas.draw()
 
     # def update(frame_idx, rewards, Qlosses, Vlosses, QVlosses):
-    def update(frame_idx, rewards, QVlosses):
+    def update(frame_idx, rewards, losses):
         p1.set_xdata(range(len(rewards)))
         p1.set_ydata(rewards)
 
         ax1.set_title('frame %s. reward: %s' %
                       (frame_idx, np.mean([rewards[i] for i in range(-10, 0)])))
-        p2.set_xdata(range(len(QVlosses)))
-        p2.set_ydata(QVlosses)
+        p2.set_xdata(range(len(losses)))
+        p2.set_ydata(losses)
         ax1.set_xlim([0, len(rewards)])
         ax1.set_ylim([min(rewards), max(rewards) + 10])
-        ax2.set_xlim([0, len(QVlosses)])
-        ax2.set_ylim([min(QVlosses), max(QVlosses)])
+        ax2.set_xlim([0, len(losses)])
+        ax2.set_ylim([min(losses), max(losses)])
         # print(max(QVlosses))
         ax2.set_yscale('log')
         plt.draw()
@@ -150,7 +150,7 @@ def plot_setup():
 
 
 # def plot(frame_idx, rewards, Qlosses, Vlosses, QVlosses):
-def plot(frame_idx, rewards, QVlosses):
+def plot(frame_idx, rewards, losses):
     # clear_output(True)
     fig = plt.figure(figsize=(20, 5))
     plt.subplot(121)
@@ -158,8 +158,8 @@ def plot(frame_idx, rewards, QVlosses):
               (frame_idx, np.mean([rewards[i] for i in range(-10, 0)])))
     plt.plot(rewards)
     plt.subplot(122)
-    plt.title('QVloss')
-    plt.plot(QVlosses)
+    plt.title('loss')
+    plt.plot(losses)
     plt.show()
 
 
@@ -175,16 +175,16 @@ def get_epsilon(i, EPS_START, EPS_END, EPS_DECAY_START, EPS_DECAY_END):
 
 
 # def save_training_run(Qlosses, Vlosses, QVlosses, rewards, agent, save_fn, model_path, plot_path):
-def save_training_run(QVlosses, rewards, agent, save_fn, model_path, plot_path):
+def save_training_run(losses, rewards, agent, save_fn, model_path, plot_path):
     with open('outputs/train_stats.pkl', 'wb') as f:
-        cPickle.dump((QVlosses, rewards), f)
+        cPickle.dump((losses, rewards), f)
 
     agent.save(filepath=model_path)
 
     save_fn(plot_path)
 
 
-def train(agent, env, actions, Qoptimizer, Voptimizer):
+def train(agent, env, actions, optimizer):
     EPS_START = 1.
     EPS_END = .1
     EPS_DECAY_START = 1000.
@@ -209,6 +209,7 @@ def train(agent, env, actions, Qoptimizer, Voptimizer):
     Qlosses = []
     Vlosses = []
     QVlosses = []
+    Totlosses = []
 
     all_rewards = deque(maxlen=100)
     rewards = []
@@ -248,27 +249,27 @@ def train(agent, env, actions, Qoptimizer, Voptimizer):
             if batch_size < len(replay):
                 # Compute loss and update parameters.
                 # Qloss, Vloss, QVloss = compute_td_loss(
-                QVloss = compute_td_loss(
-                    batch_size, agent, replay, discount_factor, Qoptimizer, Voptimizer)
+                totloss = compute_td_loss(
+                    batch_size, agent, replay, discount_factor, optimizer)
                 #Vloss = compute_td_Vloss(
                 #    batch_size, agent, replay, discount_factor, Voptimizer)
                 # Qlosses.append(Qloss.data[0])
                 # Vlosses.append(Vloss.data[0])
-                QVlosses.append(QVloss.data[0])
+                Totlosses.append(totloss.data[0])
 
         if training_steps % 200 == 0 and training_steps > 0:
             print('step = ', training_steps)
             # print("Qloss = ", Qloss.data[0])
             # print("Vloss = ", Vloss.data[0])
-            print("QVloss = ", QVloss.data[0])
+            print("totloss = ", totloss.data[0])
             print("train reward = ", tr_reward)
             print('')
             if training_steps < 100000:
-                plt_fn(training_steps, rewards, QVlosses)
+                plt_fn(training_steps, rewards, Totlosses)
                 # plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses)
             elif training_steps % 50000 == 0:
                 # plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses)
-                plt_fn(training_steps, rewards, QVlosses)
+                plt_fn(training_steps, rewards, Totlosses)
 
 
         if training_steps % target_update_frequency == 0:
@@ -279,7 +280,7 @@ def train(agent, env, actions, Qoptimizer, Voptimizer):
 
         if training_steps % num_steps_save_training_run == 0:
             # save_training_run(Qlosses, Vlosses, QVlosses, rewards, agent, save_fn, model_path, p_path)
-            save_training_run(QVlosses, rewards, agent, save_fn, model_path, p_path)
+            save_training_run(Totlosses, rewards, agent, save_fn, model_path, p_path)
 
     position = agent.position()
     painter = nel.MapVisualizer(env.simulator, config2, (
@@ -293,7 +294,7 @@ def train(agent, env, actions, Qoptimizer, Voptimizer):
         cPickle.dump(eval_reward, f)
 
     # save_training_run(Qlosses, Vlosses, QVlosses, rewards, agent, save_fn, model_path, p_path)
-    save_training_run(QVlosses, rewards, agent, save_fn, model_path, p_path)
+    save_training_run(Totlosses, rewards, agent, save_fn, model_path, p_path)
     # print(eval_reward)
 
 
@@ -316,15 +317,14 @@ def main():
     agent = RLCoupledAgent(env, state_size=state_size)
 
     # TODO: need to initialize the weights correctly
-    Qoptimizer = optim.Adam(list(agent.Qpolicy.parameters()) + list(agent.Vpolicy.parameters()),lr=agent_config['learning_rate'])
+    Optimizer = optim.Adam(list(agent.Qpolicy.parameters()) + list(agent.Vpolicy.parameters()),lr=agent_config['learning_rate'])
     #Qoptimizer = optim.Adam(agent.Qpolicy.parameters(),
     #    lr=agent_config['learning_rate'])
-    Voptimizer = []
     #optim.Adam(agent.Vpolicy.parameters(),
     #    lr=agent_config['learning_rate'])
 
     setup_output_dir()
-    train(agent, env, [0, 1, 2, 3], Qoptimizer, Voptimizer)
+    train(agent, env, [0, 1, 2, 3], Optimizer)
 
 
 if __name__ == '__main__':
