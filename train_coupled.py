@@ -44,7 +44,7 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, optimizer):
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
     state = Variable(torch.FloatTensor(np.float32(state)))
-    #print('state:', state)
+    ##print('state:', state)
     next_state = Variable(torch.FloatTensor(np.float32(next_state)))
     action = Variable(torch.LongTensor(action))
     reward = Variable(torch.FloatTensor(reward))
@@ -63,59 +63,29 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, optimizer):
     next_v_value = v_values_target[0]
     expected_v_value = reward + gamma * next_v_value * (1 - done)
 
-    print("v_values: ", v_values[0:2])
-    print("q_values: ", q_values[0:2])
+    #print("v_values: ", v_values[0:2])
+    #print("q_values: ", q_values[0:2])
 
     # loss = F.smooth_l1_loss(q_value,  Variable(expected_q_value.data))
     Qloss = F.mse_loss(q_value,  Variable(expected_q_value.data))
     Vloss = F.mse_loss(v_values,  Variable(expected_v_value.data))
 
     difference = max_q_value.sub(v_values.transpose(0, 1))
-    print("q_max: ", max_q_value[0:2])
-    print("difference: ", difference[0][0:2])
+    
     QVloss = F.mse_loss(difference,  qv_target)
 
     totloss = Qloss + Vloss + QVloss
 
-    # print('before Q')
-    # cnt = 0
-    # for param in agent.Qpolicy.parameters():
-    # 	if cnt == 0:
-    # 		# print(param.data)
-    # 	cnt += 1
-
-    # # print('before V')
-    # cnt = 0
-    # for param in agent.Vpolicy.parameters():
-    # 	if cnt == 0:
-    # 		# print(param.data)
-    # 	cnt += 1
-
-    # print('cnt:',cnt)	
+	
     optimizer.zero_grad()
     totloss.backward()
     optimizer.step()
-
-    # print('after Q')
-    # cnt = 0
-    # for param in agent.Qpolicy.parameters():
-    # 	if cnt == 0:
-    # 		print(param.data)
-    # 	cnt += 1
-
-    # # print('after V')
-    # cnt = 0
-    # for param in agent.Vpolicy.parameters():
-    # 	if cnt == 0:
-    # 		print(param.data)
-    # 	cnt += 1
 
     #Voptimizer.zero_grad()
     #totVloss.backward()
     #Voptimizer.step()
 
     return Qloss, Vloss, QVloss, totloss
-    #return totloss
 
 
 def plot_setup():
@@ -135,7 +105,7 @@ def plot_setup():
     ax3.set_title('V loss')
     ax4.set_title('QV loss')
     ax5.set_title('Total loss')
-    print("SETUP")
+    #print("SETUP")
     fig.canvas.draw()
 
     def update(frame_idx, rewards, Qlosses, Vlosses, QVlosses, totlosses):
@@ -163,7 +133,7 @@ def plot_setup():
         ax4.set_ylim([min(QVlosses), max(QVlosses)])
         ax5.set_xlim([0, len(totlosses)])
         ax5.set_ylim([min(totlosses), max(totlosses)])
-        # print(max(QVlosses))
+        # #print(max(QVlosses))
         ax2.set_yscale('log')
         ax3.set_yscale('log')
         ax4.set_yscale('log')
@@ -288,13 +258,13 @@ def train(agent, env, actions, optimizer):
                 Totlosses.append(totloss.data[0])
 
         if training_steps % 200 == 0 and training_steps > 0:
-            print('step = ', training_steps)
-            print("Qloss = ", Qloss.data[0])
-            print("Vloss = ", Vloss.data[0])
-            print("QVloss = ", QVloss.data[0])
-            print("totloss = ", totloss.data[0])
-            print("train reward = ", tr_reward)
-            print('')
+            #print('step = ', training_steps)
+            # #print("Qloss = ", Qloss.data[0])
+            # #print("Vloss = ", Vloss.data[0])
+            # #print("QVloss = ", QVloss.data[0])
+            # #print("totloss = ", totloss.data[0])
+            #print("train reward = ", tr_reward)
+            #print('')
             if training_steps < 100000:
                 #plt_fn(training_steps, rewards, Totlosses)
                 if training_steps % 2000 == 0 and training_steps > 0:
@@ -327,7 +297,7 @@ def train(agent, env, actions, optimizer):
 
     save_training_run(Qlosses, Vlosses, QVlosses, Totlosses, rewards, agent, save_fn, model_path, p_path)
     #save_training_run(Totlosses, rewards, agent, save_fn, model_path, p_path)
-    # print(eval_reward)
+    # #print(eval_reward)
 
 
 # cumulative reward for training and test
