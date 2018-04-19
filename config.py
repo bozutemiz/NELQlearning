@@ -66,7 +66,7 @@ train_config={
     'batch_size': 64,
     'eval_frequency': 1000,
     'target_update_frequency': 1000,
-    'policy_update_frequency': 2,
+    'policy_update_frequency': 1000,#2,
     'replay_buffer_capacity': 10000,
     'num_steps_save_training_run': 5000
     }

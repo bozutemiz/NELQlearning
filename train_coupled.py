@@ -44,7 +44,7 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, optimizer):
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
     state = Variable(torch.FloatTensor(np.float32(state)))
-    ##print('state:', state)
+    
     next_state = Variable(torch.FloatTensor(np.float32(next_state)))
     action = Variable(torch.LongTensor(action))
     reward = Variable(torch.FloatTensor(reward))
@@ -63,8 +63,7 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, optimizer):
     next_v_value = v_values_target[0]
     expected_v_value = reward + gamma * next_v_value * (1 - done)
 
-    #print("v_values: ", v_values[0:2])
-    #print("q_values: ", q_values[0:2])
+   
 
     # loss = F.smooth_l1_loss(q_value,  Variable(expected_q_value.data))
     Qloss = F.mse_loss(q_value,  Variable(expected_q_value.data))
@@ -76,14 +75,10 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, optimizer):
 
     totloss = Qloss + Vloss + QVloss
 
-	
+	# backprop total loss
     optimizer.zero_grad()
     totloss.backward()
     optimizer.step()
-
-    #Voptimizer.zero_grad()
-    #totVloss.backward()
-    #Voptimizer.step()
 
     return Qloss, Vloss, QVloss, totloss
 
@@ -105,11 +100,10 @@ def plot_setup():
     ax3.set_title('V loss')
     ax4.set_title('QV loss')
     ax5.set_title('Total loss')
-    #print("SETUP")
     fig.canvas.draw()
 
     def update(frame_idx, rewards, Qlosses, Vlosses, QVlosses, totlosses):
-    #def update(frame_idx, rewards, losses):
+    
         p1.set_xdata(range(len(rewards)))
         p1.set_ydata(rewards)
 
@@ -173,9 +167,7 @@ def get_epsilon(i, EPS_START, EPS_END, EPS_DECAY_START, EPS_DECAY_END):
 
 
 def save_training_run(Qlosses, Vlosses, QVlosses, totlosses, rewards, agent, save_fn, model_path, plot_path):
-#def save_training_run(losses, rewards, agent, save_fn, model_path, plot_path):
     with open('outputs/train_stats.pkl', 'wb') as f:
-        #cPickle.dump((losses, rewards), f)
         cPickle.dump((Qlosses, Vlosses, QVlosses, totlosses, rewards), f)
 
     agent.save(filepath=model_path)
@@ -214,7 +206,7 @@ def train(agent, env, actions, optimizer):
     rewards = []
     plt_fn, save_fn = plot_setup()
     painter = None
-    #painter_tr = nel.MapVisualizer(env.simulator, config2, (-30, -30), (150, 150))
+    
     prev_Qweights = agent.Qpolicy.fc3.weight
     prev_Vweights = agent.Vpolicy.fc3.weight
     for training_steps in range(max_steps):
@@ -248,41 +240,30 @@ def train(agent, env, actions, optimizer):
             if batch_size < len(replay):
                 # Compute loss and update parameters.
                 Qloss, Vloss, QVloss, totloss = compute_td_loss(
-                #totloss = compute_td_loss(
                     batch_size, agent, replay, discount_factor, optimizer)
-                #Vloss = compute_td_Vloss(
-                #    batch_size, agent, replay, discount_factor, Voptimizer)
+                
                 Qlosses.append(Qloss.data[0])
                 Vlosses.append(Vloss.data[0])
                 QVlosses.append(QVloss.data[0])
                 Totlosses.append(totloss.data[0])
 
+            # Update target with policy network weights
+            agent.update_target()
+
         if training_steps % 200 == 0 and training_steps > 0:
-            #print('step = ', training_steps)
-            # #print("Qloss = ", Qloss.data[0])
-            # #print("Vloss = ", Vloss.data[0])
-            # #print("QVloss = ", QVloss.data[0])
-            # #print("totloss = ", totloss.data[0])
-            #print("train reward = ", tr_reward)
-            #print('')
+            
             if training_steps < 100000:
-                #plt_fn(training_steps, rewards, Totlosses)
                 if training_steps % 2000 == 0 and training_steps > 0:
                 	plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses, Totlosses)
             elif training_steps % 50000 == 0:
                 plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses, Totlosses)
-                #plt_fn(training_steps, rewards, Totlosses)
 
-
-        if training_steps % target_update_frequency == 0:
-            agent.update_target()
 
         model_path = 'outputs/models/NELQ_' + str(training_steps)
         p_path = 'outputs/plots/NELQ_plot_' + str(training_steps) + '.png'
 
         if training_steps % num_steps_save_training_run == 0:
             save_training_run(Qlosses, Vlosses, QVlosses, Totlosses, rewards, agent, save_fn, model_path, p_path)
-            #save_training_run(Totlosses, rewards, agent, save_fn, model_path, p_path)
 
     position = agent.position()
     painter = nel.MapVisualizer(env.simulator, config2, (
@@ -296,8 +277,6 @@ def train(agent, env, actions, optimizer):
         cPickle.dump(eval_reward, f)
 
     save_training_run(Qlosses, Vlosses, QVlosses, Totlosses, rewards, agent, save_fn, model_path, p_path)
-    #save_training_run(Totlosses, rewards, agent, save_fn, model_path, p_path)
-    # #print(eval_reward)
 
 
 # cumulative reward for training and test
@@ -315,15 +294,10 @@ def main():
     env = Environment(config2)
     from agent import actions
     state_size = (config2.vision_range*2 + 1)**2 * config2.color_num_dims + config2.scent_num_dims + len(actions)
-    #state_size = (config2.vision_range*2 + 1)**2 * config2.color_num_dims + config2.scent_num_dims
     agent = RLCoupledAgent(env, state_size=state_size)
 
     # TODO: need to initialize the weights correctly
     Optimizer = optim.Adam(list(agent.Qpolicy.parameters()) + list(agent.Vpolicy.parameters()),lr=agent_config['learning_rate'])
-    #Qoptimizer = optim.Adam(agent.Qpolicy.parameters(),
-    #    lr=agent_config['learning_rate'])
-    #optim.Adam(agent.Vpolicy.parameters(),
-    #    lr=agent_config['learning_rate'])
 
     setup_output_dir()
     train(agent, env, [0, 1, 2, 3], Optimizer)
