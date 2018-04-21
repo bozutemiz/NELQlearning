@@ -243,6 +243,7 @@ def train(agent, env, actions, optimizer):
     Totlosses = []
 
     all_rewards = deque(maxlen=100)
+    rewards_100 = []
     rewards = []
     plt_fn, save_fn = plot_setup()
     painter = None
@@ -267,8 +268,9 @@ def train(agent, env, actions, optimizer):
 
         # Accumulate all rewards.
         tr_reward += reward
+        rewards.append(reward)
         all_rewards.append(reward)
-        rewards.append(np.sum(all_rewards))
+        rewards_100.append(np.sum(all_rewards))
 
         # Add to memory current state, action it took, reward and new state.
         if add_to_replay:
@@ -298,12 +300,12 @@ def train(agent, env, actions, optimizer):
             print("train reward = ", tr_reward)
             print('')
             if training_steps < 100000:
-                #plt_fn(training_steps, rewards, Totlosses)
+                #plt_fn(training_steps, rewards_100, Totlosses)
                 if training_steps % 2000 == 0 and training_steps > 0:
-                	plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses, Totlosses)
+                	plt_fn(training_steps, rewards_100, Qlosses, Vlosses, QVlosses, Totlosses)
             elif training_steps % 50000 == 0:
-                plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses, Totlosses)
-                #plt_fn(training_steps, rewards, Totlosses)
+                plt_fn(training_steps, rewards_100, Qlosses, Vlosses, QVlosses, Totlosses)
+                #plt_fn(training_steps, rewards_100, Totlosses)
 
 
         if training_steps % target_update_frequency == 0:
