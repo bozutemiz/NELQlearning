@@ -58,21 +58,23 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, optimizer):
     expected_q_value = reward + gamma * next_q_value * (1 - done)
 
     max_q_value = q_values.max(1)[0]
+    #max_q_value = q_values_target.max(1)[0]
     v_values = agent.Vpolicy(state)
     v_values_target = agent.Vtarget(next_state)
     next_v_value = v_values_target[0]
     expected_v_value = reward + gamma * next_v_value * (1 - done)
 
-    print("v_values: ", v_values[0:2])
-    print("q_values: ", q_values[0:2])
+    #print("v_values: ", v_values[0:2])
+    #print("q_values: ", q_values[0:2])
 
     # loss = F.smooth_l1_loss(q_value,  Variable(expected_q_value.data))
     Qloss = F.mse_loss(q_value,  Variable(expected_q_value.data))
     Vloss = F.mse_loss(v_values,  Variable(expected_v_value.data))
 
     difference = max_q_value.sub(v_values.transpose(0, 1))
-    print("q_max: ", max_q_value[0:2])
-    print("difference: ", difference[0][0:2])
+    #difference = max_q_value.sub(v_values_target.transpose(0, 1))
+    #print("q_max: ", max_q_value[0:2])
+    #print("difference: ", difference[0][0:2])
     QVloss = F.mse_loss(difference,  qv_target)
 
     totloss = Qloss + Vloss + QVloss
@@ -180,7 +182,7 @@ def plot_setup():
 # def plot(frame_idx, rewards, Qlosses, Vlosses, QVlosses):
 def plot(frame_idx, rewards, losses):
     # clear_output(True)
-    fig = plt.figure(figsize=(20, 5))
+    fig = plt.figure(figsize=(100, 5))
     plt.subplot(121)
     plt.title('frame %s. reward: %s' %
               (frame_idx, np.mean([rewards[i] for i in range(-10, 0)])))

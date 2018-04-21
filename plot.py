@@ -9,6 +9,7 @@ def plot_reward(rewards,file_name):
 	plt.xlabel('time')
 	#plt.show()
 	fig.savefig("./outputs/"+file_name, bbox_inches='tight')
+	#fig.savefig("./outputs/"+file_name)
 
 def plot_reward_all(curves,curve_names,file_name):
 	m = ['s','.','o','*','+','s','_','*']
@@ -28,3 +29,4 @@ def plot_reward_all(curves,curve_names,file_name):
 	plt.ylabel('reward',fontsize=22)
 	plt.show()
 	fig.savefig("./outputs/"+file_name, bbox_inches='tight')
+	#fig.savefig("./outputs/"+file_name)
