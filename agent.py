@@ -11,6 +11,7 @@ import torch.nn.functional as F
 from six.moves import cPickle
 from torch.autograd import Variable
 
+
 actions = [nel.Direction.UP, nel.Direction.DOWN, nel.Direction.LEFT,
            nel.Direction.RIGHT]
 torch.set_printoptions(precision=10)
@@ -158,7 +159,8 @@ class RLCoupledAgent(BaseAgent):
         
         self.Qtarget.load_state_dict(self.Qpolicy.state_dict())
         self.Vtarget.load_state_dict(self.Vpolicy.state_dict())
-        
+            
+
         self.prev_q = torch.Tensor([0, 0, 0, 0])
         self.prev_v = torch.Tensor([0])
         self.prev_action = np.zeros(len(actions), dtype=np.float32)

@@ -123,8 +123,9 @@ def get_epsilon(i, EPS_START, EPS_END, EPS_DECAY_START, EPS_DECAY_END):
     return epsilon
 
 
-def save_training_run(losses, rewards, agent, save_fn, model_path, plot_path):
-    with open('outputs/train_stats.pkl', 'wb') as f:
+def save_training_run(losses, rewards, agent, save_fn, output_dir, model_path, plot_path):
+    #with open('outputs/train_stats.pkl', 'wb') as f:
+    with open(output_dir + 'train_stats.pkl', 'wb') as f:
         cPickle.dump((losses, rewards), f)
 
     agent.save(filepath=model_path)
@@ -132,7 +133,7 @@ def save_training_run(losses, rewards, agent, save_fn, model_path, plot_path):
     save_fn(plot_path)
 
 
-def train(agent, env, actions, optimizer):
+def train(agent, env, actions, optimizer, output_dir, m_dir, p_dir):
     EPS_START = 1.
     EPS_END = .1
     EPS_DECAY_START = 1000.
@@ -148,7 +149,7 @@ def train(agent, env, actions, optimizer):
     training_steps = 0
     replay = ReplayBuffer(train_config['replay_buffer_capacity'])
     discount_factor = train_config['discount_factor']
-    eval_reward = []
+    #eval_reward = []
     eval_steps = train_config['eval_steps']
     max_steps = train_config['max_steps']
     tr_reward = 0
@@ -156,6 +157,7 @@ def train(agent, env, actions, optimizer):
     losses = []
     all_rewards = deque(maxlen=100)
     rewards = []
+    rewards_100 = []
     plt_fn, save_fn = plot_setup()
     painter = None
     #painter_tr = nel.MapVisualizer(env.simulator, config2, (-30, -30), (150, 150))
@@ -179,7 +181,8 @@ def train(agent, env, actions, optimizer):
         # Accumulate all rewards.
         tr_reward += reward
         all_rewards.append(reward)
-        rewards.append(np.sum(all_rewards))
+        rewards.append(reward)
+        rewards_100.append(np.sum(all_rewards))
 
         # Add to memory current state, action it took, reward and new state.
         if add_to_replay:
@@ -200,19 +203,21 @@ def train(agent, env, actions, optimizer):
             print("train reward = ", tr_reward)
             print('')
             if training_steps < 100000:
-                plt_fn(training_steps, rewards, losses)
+                plt_fn(training_steps, rewards_100, losses)
             elif training_steps % 50000 == 0:
-                plt_fn(training_steps, rewards, losses)
+                plt_fn(training_steps, rewards_100, losses)
 
 
         if training_steps % target_update_frequency == 0:
             agent.update_target()
 
-        model_path = 'outputs/models/NELQ_' + str(training_steps)
-        p_path = 'outputs/plots/NELQ_plot_' + str(training_steps) + '.png'
+        #model_path = 'outputs/models/NELQ_' + str(training_steps)
+        model_path = m_dir + '/NELQ_' + str(training_steps)
+        #p_path = 'outputs/plots/NELQ_plot_' + str(training_steps) + '.png'
+        p_path = p_dir + '/NELQ_plot_' + str(training_steps) + '.png'
 
         if training_steps % num_steps_save_training_run == 0:
-            save_training_run(losses, rewards, agent, save_fn, model_path, p_path)
+            save_training_run(losses, rewards, agent, save_fn, output_dir, model_path, p_path)
 
     position = agent.position()
     painter = nel.MapVisualizer(env.simulator, config2, (
@@ -222,18 +227,16 @@ def train(agent, env, actions, optimizer):
         action, reward = agent.step()
         painter.draw()
 
-    with open('outputs/eval_reward.pkl', 'w') as f:
-        cPickle.dump(eval_reward, f)
+    #with open('outputs/eval_reward.pkl', 'w') as f:
+    #    cPickle.dump(eval_reward, f)
 
-    save_training_run(losses, rewards, agent, save_fn, model_path, p_path)
-    print(eval_reward)
+    save_training_run(losses, rewards, agent, save_fn, output_dir, model_path, p_path)
+    #print(eval_reward)
 
 
 # cumulative reward for training and test
 
-def setup_output_dir():
-    m_dir = 'outputs/models'
-    p_dir = 'outputs/plots'
+def setup_output_dir(m_dir, p_dir):
 
     if not os.path.exists(m_dir):
         os.makedirs(m_dir)
@@ -241,16 +244,23 @@ def setup_output_dir():
         os.makedirs(p_dir)
 
 def main():
-    env = Environment(config2)
-    from agent import actions
-    state_size = (config2.vision_range*2 + 1)**2 * config2.color_num_dims + config2.scent_num_dims + len(actions)
-    agent = RLAgent(env, state_size=state_size)
 
-    optimizer = optim.Adam(agent.policy.parameters(),
-        lr=agent_config['learning_rate'])
+    for i in range(10):
 
-    setup_output_dir()
-    train(agent, env, [0, 1, 2, 3], optimizer)
+        output_dir = 'outputs_' + str(i) + '/'
+        m_dir = output_dir + 'models'
+        p_dir = output_dir + 'plots'
+
+        env = Environment(config2)
+        from agent import actions
+        state_size = (config2.vision_range*2 + 1)**2 * config2.color_num_dims + config2.scent_num_dims + len(actions)
+        agent = RLAgent(env, state_size=state_size)
+
+        optimizer = optim.Adam(agent.policy.parameters(),
+            lr=agent_config['learning_rate'])
+
+        setup_output_dir(m_dir,p_dir)
+        train(agent, env, [0, 1, 2, 3], optimizer,output_dir,m_dir,p_dir)
 
 
 if __name__ == '__main__':

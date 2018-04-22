@@ -52,14 +52,16 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, optimizer):
     qv_target = Variable(torch.FloatTensor(1, batch_size).zero_())
 
     q_values = agent.Qpolicy(state)
+    q_values_t = agent.Qtarget(state)
     q_values_target = agent.Qtarget(next_state)
     q_value = q_values.gather(1, action.unsqueeze(1)).squeeze(1)
     next_q_value = q_values_target.max(1)[0]
     expected_q_value = reward + gamma * next_q_value * (1 - done)
 
     max_q_value = q_values.max(1)[0]
-    #max_q_value = q_values_target.max(1)[0]
+    #max_q_value = q_values_t.max(1)[0]
     v_values = agent.Vpolicy(state)
+    v_values_t = agent.Vtarget(state)
     v_values_target = agent.Vtarget(next_state)
     next_v_value = v_values_target[0]
     expected_v_value = reward + gamma * next_v_value * (1 - done)
@@ -72,7 +74,7 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, optimizer):
     Vloss = F.mse_loss(v_values,  Variable(expected_v_value.data))
 
     difference = max_q_value.sub(v_values.transpose(0, 1))
-    #difference = max_q_value.sub(v_values_target.transpose(0, 1))
+    #difference = max_q_value.sub(v_values_t.transpose(0, 1))
     #print("q_max: ", max_q_value[0:2])
     #print("difference: ", difference[0][0:2])
     QVloss = F.mse_loss(difference,  qv_target)
