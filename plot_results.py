@@ -6,6 +6,30 @@ from six.moves import cPickle
 from collections import deque
 import numpy as np
 
+def read_and_calculate_score(f_path, ind):
+
+	data = cPickle.load( open( f_path, "rb" ) )
+	rews = data[ind]
+	print('tot_rew :', np.sum(rews))
+	#tot_rew_10 = tot_reward_n_step(rews, n=10)
+	#tot_rew_1000 = tot_reward_n_step(rews, n=1000)
+	#print('max_rew10 :', np.max(tot_rew_10))
+	#print('max_rew100 :', np.max(data[ind]))
+	#print('max_rew1000 :', np.max(tot_rew_1000))
+	print('ave_rew :', np.mean(rews))
+	#print('ave_rew10 :', np.mean(tot_rew_10))
+	#print('ave_rew100 :', np.mean(data[ind]))
+	#print('ave_rew1000 :', np.mean(tot_rew_1000))
+	print('ave_rew_f100k :', np.mean(rews[0:100000]))
+	#print('ave_rew10_f100k :', np.mean(tot_rew_10[0:100000]))
+	#print('ave_rew100_f100k :', np.mean(data[ind][0:100000]))
+	#print('ave_rew1000_f100k :', np.mean(tot_rew_1000[0:100000]))
+		
+
+	return calculate_mean_rew_per_time(rews)
+
+
+
 def calculate_mean_rew_per_time(rewards):
 	mean_rews = []
 	tot_rews = 0
@@ -56,147 +80,43 @@ def main():
 	running_mean_rew_qvl_onpol = []
 	running_mean_rew_qnet = []
 	running_mean_rew_qvl_offpol = []
+
+	file_dir1 = "outputs/"
+	file_name = "train_stats.pkl"
 	
 
-	for j in range(5):
-		file_dir2 = "QVloss on policy run " + str(j+1)
-		file_dir1 = "outputs/"
-		file_dir = file_dir1 + file_dir2 + "/"
-		file_name = "train_stats.pkl"
+	for j in range(10):
+		file_dir2 = "QVloss on policy/"
+		file_dir3 = "outputs_" + str(j)
+		
+		file_dir = file_dir1 + file_dir2 + file_dir3 + "/"
 		ind = 4
-
-		data = cPickle.load( open( file_dir+file_name, "rb" ) )
-		rews = get_rewards_per_step(data[ind])
 		
-		#all_rewards = deque(maxlen=100)
-		#rewards = []
+		running_mean_rew_qvl_onpol.append(read_and_calculate_score(file_dir+file_name, ind))
 
-		#for i in range(len(rews)):
-		#	all_rewards.append(rews[i])
-		#	asd = np.sum(all_rewards)
-		#	rewards.append(asd)
 
-		print('tot_rew :', np.sum(rews))
-		#tot_rew_10 = tot_reward_n_step(rews, n=10)
-		#tot_rew_1000 = tot_reward_n_step(rews, n=1000)
-		#print('max_rew10 :', np.max(tot_rew_10))
-		print('max_rew100 :', np.max(data[ind]))
-		#print('max_rew1000 :', np.max(tot_rew_1000))
-		print('ave_rew :', np.mean(rews))
-		#print('ave_rew10 :', np.mean(tot_rew_10))
-		print('ave_rew100 :', np.mean(data[ind]))
-		#print('ave_rew1000 :', np.mean(tot_rew_1000))
-		print('ave_rew_f100k :', np.mean(rews[0:100000]))
-		#print('ave_rew10_f100k :', np.mean(tot_rew_10[0:100000]))
-		print('ave_rew100_f100k :', np.mean(data[ind][0:100000]))
-		#print('ave_rew1000_f100k :', np.mean(tot_rew_1000[0:100000]))
+	for j in range(10):
+
+		file_dir2 = "QVloss off policy/"
+		file_dir3 = "outputs_" + str(j)
 		
-		running_mean_rew_qvl_onpol.append(calculate_mean_rew_per_time(rews))
-		#print(running_mean_rew)
-
-		#diff = []
-		#for i in range(len(rews)):
-		#	diff.append(data[4][i]-rewards[i])
-
-
-		#print('diff: ',np.sum(diff))
+		file_dir = file_dir1 + file_dir2 + file_dir3 + "/"
+		ind = 4
 		
-		#fig, ax = plt.subplots()
+		running_mean_rew_qvl_offpol.append(read_and_calculate_score(file_dir+file_name, ind))
+
+
+	for j in range(10):
+
+		file_dir2 = "Qlearning baseline/"
+		file_dir3 = "outputs_" + str(j)
 		
-
-		#ax.set_ylim([0,0.06])
-		#ax.set_title(file_dir2)
-		#plt.plot()
-		#fig.savefig(file_dir2 + ".png")
-		#plt.show()
-
-	for j in range(5):
-
-		file_dir2 = "Qnet run " + str(j+1)
-		file_dir1 = "outputs/"
-		file_dir = file_dir1 + file_dir2 + "/"
-		file_name = "train_stats.pkl"
+		file_dir = file_dir1 + file_dir2 + file_dir3 + "/"
 		ind = 1
-
-		data = cPickle.load( open( file_dir+file_name, "rb" ) )
-		rews = get_rewards_per_step(data[ind])
 		
-		#all_rewards = deque(maxlen=100)
-		#rewards = []
-
-		#for i in range(len(rews)):
-		#	all_rewards.append(rews[i])
-		#	asd = np.sum(all_rewards)
-		#	rewards.append(asd)
-
-		print('tot_rew :', np.sum(rews))
-		#tot_rew_10 = tot_reward_n_step(rews, n=10)
-		#tot_rew_1000 = tot_reward_n_step(rews, n=1000)
-		#print('max_rew10 :', np.max(tot_rew_10))
-		print('max_rew100 :', np.max(data[ind]))
-		#print('max_rew1000 :', np.max(tot_rew_1000))
-		print('ave_rew :', np.mean(rews))
-		#print('ave_rew10 :', np.mean(tot_rew_10))
-		print('ave_rew100 :', np.mean(data[ind]))
-		#print('ave_rew1000 :', np.mean(tot_rew_1000))
-		print('ave_rew_f100k :', np.mean(rews[0:100000]))
-		#print('ave_rew10_f100k :', np.mean(tot_rew_10[0:100000]))
-		print('ave_rew100_f100k :', np.mean(data[ind][0:100000]))
-		#print('ave_rew1000_f100k :', np.mean(tot_rew_1000[0:100000]))
-		
-		running_mean_rew_qnet.append(calculate_mean_rew_per_time(rews))
-
-	for j in range(5):
-		file_dir2 = "QVloss off policy run " + str(j+1)
-		file_dir1 = "outputs/"
-		file_dir = file_dir1 + file_dir2 + "/"
-		file_name = "train_stats.pkl"
-		ind = 4
-
-		data = cPickle.load( open( file_dir+file_name, "rb" ) )
-		rews = get_rewards_per_step(data[ind])
-		
-		#all_rewards = deque(maxlen=100)
-		#rewards = []
-
-		#for i in range(len(rews)):
-		#	all_rewards.append(rews[i])
-		#	asd = np.sum(all_rewards)
-		#	rewards.append(asd)
-
-		print('tot_rew :', np.sum(rews))
-		#tot_rew_10 = tot_reward_n_step(rews, n=10)
-		#tot_rew_1000 = tot_reward_n_step(rews, n=1000)
-		#print('max_rew10 :', np.max(tot_rew_10))
-		print('max_rew100 :', np.max(data[ind]))
-		#print('max_rew1000 :', np.max(tot_rew_1000))
-		print('ave_rew :', np.mean(rews))
-		#print('ave_rew10 :', np.mean(tot_rew_10))
-		print('ave_rew100 :', np.mean(data[ind]))
-		#print('ave_rew1000 :', np.mean(tot_rew_1000))
-		print('ave_rew_f100k :', np.mean(rews[0:100000]))
-		#print('ave_rew10_f100k :', np.mean(tot_rew_10[0:100000]))
-		print('ave_rew100_f100k :', np.mean(data[ind][0:100000]))
-		#print('ave_rew1000_f100k :', np.mean(tot_rew_1000[0:100000]))
-		
-		running_mean_rew_qvl_offpol.append(calculate_mean_rew_per_time(rews))
-		#print(running_mean_rew)
-
-		#diff = []
-		#for i in range(len(rews)):
-		#	diff.append(data[4][i]-rewards[i])
+		running_mean_rew_qnet.append(read_and_calculate_score(file_dir+file_name, ind))
 
 
-		#print('diff: ',np.sum(diff))
-		
-		#fig, ax = plt.subplots()
-		
-
-		#ax.set_ylim([0,0.06])
-		#ax.set_title(file_dir2)
-		#plt.plot()
-		#fig.savefig(file_dir2 + ".png")
-		#plt.show()
 
 
 	#print(len(running_mean_rew_qvl_onpol))
@@ -217,11 +137,11 @@ def main():
 
 	x = range(1,len(mean_qvl_onpol)+1)
 	print(len(x))
-	ax.plot(mean_qvl_onpol,linewidth=5, color='blue')
-	ax.fill_between(x, mean_qvl_onpol - std_qvl_onpol, mean_qvl_onpol + std_qvl_onpol,color='blue',alpha=0.4)
-	ax.plot(mean_qnet,linewidth=5, color='red')
+	ax.plot(mean_qnet,linewidth=5, color='red', label='Baseline')
 	ax.fill_between(x, mean_qnet - std_qnet, mean_qnet + std_qnet,color='red',alpha=0.4)
-	ax.plot(mean_qvl_offpol,linewidth=5, color='green')
+	ax.plot(mean_qvl_onpol,linewidth=5, color='blue', label='Q-V Loss on Policy')
+	ax.fill_between(x, mean_qvl_onpol - std_qvl_onpol, mean_qvl_onpol + std_qvl_onpol,color='blue',alpha=0.4)
+	ax.plot(mean_qvl_offpol,linewidth=5, color='green', label='Q-V Loss off Policy')
 	ax.fill_between(x, mean_qvl_offpol - std_qvl_offpol, mean_qvl_offpol + std_qvl_offpol,color='green',alpha=0.4)
 		
 
@@ -239,10 +159,13 @@ def main():
 
 
 
-	ax.set_ylim([0,0.06])
-	ax.set_title(file_dir2)
+	ax.set_ylim([0,0.1])
+	ax.set_title('Coupled Q-Learning Results')
+	ax.set(xlabel='Steps in the environment', ylabel='Rewards/Steps')
+	ax.legend(loc='upper right', fontsize='x-large', ncol=1)
+
 	plt.plot()
-	#fig.savefig(file_dir2 + ".png")
+	fig.savefig("coupled_results.png")
 	plt.show()
 
 
