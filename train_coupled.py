@@ -39,7 +39,7 @@ class ReplayBuffer(object):
         return len(self.buffer)
 
 
-def compute_td_loss(batch_size, agent, replay_buffer, gamma, optimizer):
+def compute_td_loss(batch_size, agent, replay_buffer, gamma, optimizer, target_update_frequency, training_steps):
     # Sample a random minibatch from the replay history.
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
@@ -64,41 +64,42 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, optimizer):
     expected_v_value = reward + gamma * next_v_value * (1 - done)
 
    
-
-    # loss = F.smooth_l1_loss(q_value,  Variable(expected_q_value.data))
     Qloss = F.mse_loss(q_value,  Variable(expected_q_value.data))
     Vloss = F.mse_loss(v_values,  Variable(expected_v_value.data))
 
     difference = max_q_value.sub(v_values.transpose(0, 1))
-    
-    QVloss = F.mse_loss(difference,  qv_target)
+    totloss = Qloss + Vloss
 
-    totloss = Qloss + Vloss + QVloss
+    if training_steps % target_update_frequency == 0:
+        QVloss = F.mse_loss(difference,  qv_target)
+        totloss += QVloss
+    
+    #totloss = Qloss + Vloss +QVloss
 
 	# backprop total loss
     optimizer.zero_grad()
     totloss.backward()
     optimizer.step()
 
-    return Qloss, Vloss, QVloss, totloss
+    return Qloss, Vloss, totloss
+    # return Qloss, Vloss, QVloss, totloss
 
 
 def plot_setup():
-    # plt.ion()
     fig = plt.figure()
     ax1 = fig.add_subplot(151)
     ax2 = fig.add_subplot(152)
     ax3 = fig.add_subplot(153)
-    ax4 = fig.add_subplot(154)
+    # ax4 = fig.add_subplot(154)
     ax5 = fig.add_subplot(155)
     p1, = ax1.plot([])
     p2, = ax2.plot([])
     p3, = ax3.plot([])
-    p4, = ax4.plot([])
+    # p4, = ax4.plot([])
     p5, = ax5.plot([])
     ax2.set_title('Q loss')
     ax3.set_title('V loss')
-    ax4.set_title('QV loss')
+    # ax4.set_title('QV loss')
     ax5.set_title('Total loss')
     fig.canvas.draw()
 
@@ -113,8 +114,8 @@ def plot_setup():
         p2.set_ydata(Qlosses)
         p3.set_xdata(range(len(Vlosses)))
         p3.set_ydata(Vlosses)
-        p4.set_xdata(range(len(QVlosses)))
-        p4.set_ydata(QVlosses)
+        # p4.set_xdata(range(len(QVlosses)))
+        # p4.set_ydata(QVlosses)
         p5.set_xdata(range(len(totlosses)))
         p5.set_ydata(totlosses)
         ax1.set_xlim([0, len(rewards)])
@@ -123,14 +124,14 @@ def plot_setup():
         ax2.set_ylim([min(Qlosses), max(Qlosses)])
         ax3.set_xlim([0, len(Vlosses)])
         ax3.set_ylim([min(Vlosses), max(Vlosses)])
-        ax4.set_xlim([0, len(QVlosses)])
-        ax4.set_ylim([min(QVlosses), max(QVlosses)])
+        # ax4.set_xlim([0, len(QVlosses)])
+        # ax4.set_ylim([min(QVlosses), max(QVlosses)])
         ax5.set_xlim([0, len(totlosses)])
         ax5.set_ylim([min(totlosses), max(totlosses)])
-        # #print(max(QVlosses))
+
         ax2.set_yscale('log')
         ax3.set_yscale('log')
-        ax4.set_yscale('log')
+        # ax4.set_yscale('log')
         ax5.set_yscale('log')
         plt.draw()
         plt.pause(0.0001)
@@ -141,7 +142,6 @@ def plot_setup():
     return update, save
 
 
-# def plot(frame_idx, rewards, Qlosses, Vlosses, QVlosses):
 def plot(frame_idx, rewards, losses):
     # clear_output(True)
     fig = plt.figure(figsize=(20, 5))
@@ -239,19 +239,20 @@ def train(agent, env, actions, optimizer):
         if training_steps % policy_update_frequency == 0:
             if batch_size < len(replay):
                 # Compute loss and update parameters.
-                Qloss, Vloss, QVloss, totloss = compute_td_loss(
-                    batch_size, agent, replay, discount_factor, optimizer)
+                Qloss, Vloss, totloss = compute_td_loss(
+                    batch_size, agent, replay, discount_factor, optimizer, 
+                    target_update_frequency, training_steps)
                 
                 Qlosses.append(Qloss.data[0])
                 Vlosses.append(Vloss.data[0])
-                QVlosses.append(QVloss.data[0])
+                # QVlosses.append(QVloss.data[0])
                 Totlosses.append(totloss.data[0])
 
-            # Update target with policy network weights
+        # Update target with policy network weights
+        if training_steps % target_update_frequency == 0:
             agent.update_target()
 
         if training_steps % 200 == 0 and training_steps > 0:
-            
             if training_steps < 100000:
                 if training_steps % 2000 == 0 and training_steps > 0:
                 	plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses, Totlosses)
