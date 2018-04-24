@@ -252,12 +252,14 @@ def train(agent, env, actions, optimizer):
         if training_steps % target_update_frequency == 0:
             agent.update_target()
 
-        if training_steps % 200 == 0 and training_steps > 0:
-            if training_steps < 100000:
-                if training_steps % 2000 == 0 and training_steps > 0:
-                	plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses, Totlosses)
-            elif training_steps % 50000 == 0:
-                plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses, Totlosses)
+        # if training_steps >= 100000 and training_steps % 1000 == 0:
+        #     plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses, Totlosses)
+        # if training_steps % 200 == 0 and training_steps > 0:
+        #     if training_steps < 100000:
+        #         if training_steps % 2000 == 0 and training_steps > 0:
+        #         	plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses, Totlosses)
+        #     elif training_steps % 50000 == 0:
+        #         plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses, Totlosses)
 
 
         model_path = 'outputs/models/NELQ_' + str(training_steps)
@@ -277,6 +279,7 @@ def train(agent, env, actions, optimizer):
     with open('outputs/eval_reward.pkl', 'w') as f:
         cPickle.dump(eval_reward, f)
 
+    plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses, Totlosses)
     save_training_run(Qlosses, Vlosses, QVlosses, Totlosses, rewards, agent, save_fn, model_path, p_path)
 
 
