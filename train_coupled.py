@@ -258,7 +258,7 @@ def train(agent, env, actions, optimizer, n):
 
         
         #     plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses, Totlosses)
-        if training_steps % 500 == 0 and training_steps > 0:
+        if training_steps % 5000 == 0 and training_steps > 0:
         #     if training_steps < 100000:
             print("training step:", training_steps)
         #         if training_steps % 2000 == 0 and training_steps > 0:
@@ -285,15 +285,15 @@ def train(agent, env, actions, optimizer, n):
     with open(fname, 'w') as f:
         cPickle.dump(eval_reward, f)
 
+    p_path = 'outputs/plots/'+ str(n) + '_NELQ_plot_' + str(max_steps) + '.png'
     plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses, Totlosses)
     save_training_run(Qlosses, Vlosses, QVlosses, Totlosses, rewards, agent, save_fn, model_path, p_path, n)
-
+    save_fn(p_path)
 
 # cumulative reward for training and test
-
 def setup_output_dir(n):
-    m_dir = 'outputs/models/' + str(n) + "-run for 1000" 
-    p_dir = 'outputs/plots/' + str(n) + "-run for 1000"
+    m_dir = 'outputs/models/' + str(n) + "-run for 10,000" 
+    p_dir = 'outputs/plots/' + str(n) + "-run for 10,000"
 
     if not os.path.exists(m_dir):
         os.makedirs(m_dir)
