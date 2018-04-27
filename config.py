@@ -90,7 +90,7 @@ train_config={
     'max_steps': 500001,
     'batch_size': 64,
     'eval_frequency': 1000,
-    'target_update_frequency': 10000,#500,#1000,
+    'target_update_frequency': 100,#500,#1000,
     'policy_update_frequency': 2,
     'replay_buffer_capacity': 10000,
     'num_steps_save_training_run': 5000
