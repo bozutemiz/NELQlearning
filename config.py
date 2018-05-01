@@ -2,6 +2,7 @@ import sys
 
 sys.path.append("../nel_framework/nel/")
 import nel
+import random
 
 # ---------------- config 1
 items1 = []
@@ -43,7 +44,7 @@ interaction_fn_args.extend([100.0, 0.0, -100.0, -100.0]) # parameters for intera
 interaction_fn_args.extend([10.0, 100.0, 0.0, -6.0])     # parameters for interaction between item 2 and item 2
 
 
-config2 = nel.SimulatorConfig(
+config2 = nel.SimulatorConfig(seed=random.randint(0,4294967295),
     max_steps_per_movement=1, vision_range=5,
     patch_size=32, gibbs_num_iter=10, items=items,
     agent_color=[1.0, 0.5, 0.5],
@@ -68,5 +69,5 @@ train_config={
     'target_update_frequency': 1000,
     'policy_update_frequency': 2,
     'replay_buffer_capacity': 10000,
-    'num_steps_save_training_run': 5000
+    'num_steps_save_training_run': 25000
     }

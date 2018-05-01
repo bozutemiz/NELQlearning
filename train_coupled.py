@@ -8,6 +8,7 @@ from collections import deque
 import random
 from six.moves import cPickle
 import copy
+import math
 
 import torch
 import torch.nn as nn
@@ -39,7 +40,7 @@ class ReplayBuffer(object):
         return len(self.buffer)
 
 
-def compute_td_loss(batch_size, agent, replay_buffer, gamma, optimizer):
+def compute_td_loss(batch_size, agent, replay_buffer, gamma, optimizer, index):
     # Sample a random minibatch from the replay history.
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
@@ -58,8 +59,8 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, optimizer):
     next_q_value = q_values_target.max(1)[0]
     expected_q_value = reward + gamma * next_q_value * (1 - done)
 
-    max_q_value = q_values.max(1)[0]
-    #max_q_value = q_values_t.max(1)[0]
+    #max_q_value = q_values.max(1)[0]
+    max_q_value = q_values_t.max(1)[0]
     v_values = agent.Vpolicy(state)
     v_values_t = agent.Vtarget(state)
     v_values_target = agent.Vtarget(next_state)
@@ -73,13 +74,29 @@ def compute_td_loss(batch_size, agent, replay_buffer, gamma, optimizer):
     Qloss = F.mse_loss(q_value,  Variable(expected_q_value.data))
     Vloss = F.mse_loss(v_values,  Variable(expected_v_value.data))
 
-    difference = max_q_value.sub(v_values.transpose(0, 1))
-    #difference = max_q_value.sub(v_values_t.transpose(0, 1))
+    QVloss = Variable(torch.FloatTensor(1).zero_())
+
+    #if index > 10000:
+    if index >= 0:
+
+    	#difference = max_q_value.sub(v_values.transpose(0, 1))
+    	difference = max_q_value.sub(v_values_t.transpose(0, 1))
     #print("q_max: ", max_q_value[0:2])
     #print("difference: ", difference[0][0:2])
-    QVloss = F.mse_loss(difference,  qv_target)
+    #	w = 0.1 * math.log(index)
 
-    totloss = Qloss + Vloss + QVloss
+    #	if index % 200 == 0:
+    #		print('w :', w)
+
+
+    	QVloss = F.mse_loss(difference,  qv_target)
+
+
+
+    	totloss = Qloss + Vloss + QVloss
+
+    else:
+    	totloss = Qloss + Vloss
 
     # print('before Q')
     # cnt = 0
@@ -206,9 +223,9 @@ def get_epsilon(i, EPS_START, EPS_END, EPS_DECAY_START, EPS_DECAY_END):
     return epsilon
 
 
-def save_training_run(Qlosses, Vlosses, QVlosses, totlosses, rewards, agent, save_fn, model_path, plot_path):
+def save_training_run(Qlosses, Vlosses, QVlosses, totlosses, rewards, agent, save_fn, output_dir, model_path, plot_path):
 #def save_training_run(losses, rewards, agent, save_fn, model_path, plot_path):
-    with open('outputs/train_stats.pkl', 'wb') as f:
+    with open(output_dir + 'train_stats.pkl', 'wb') as f:
         #cPickle.dump((losses, rewards), f)
         cPickle.dump((Qlosses, Vlosses, QVlosses, totlosses, rewards), f)
 
@@ -217,7 +234,7 @@ def save_training_run(Qlosses, Vlosses, QVlosses, totlosses, rewards, agent, sav
     save_fn(plot_path)
 
 
-def train(agent, env, actions, optimizer):
+def train(agent, env, actions, optimizer, output_dir, m_dir, p_dir):
     EPS_START = 1.
     EPS_END = .1
     EPS_DECAY_START = 1000.
@@ -233,7 +250,7 @@ def train(agent, env, actions, optimizer):
     training_steps = 0
     replay = ReplayBuffer(train_config['replay_buffer_capacity'])
     discount_factor = train_config['discount_factor']
-    eval_reward = []
+ #   eval_reward = []
     eval_steps = train_config['eval_steps']
     max_steps = train_config['max_steps']
     tr_reward = 0
@@ -285,7 +302,7 @@ def train(agent, env, actions, optimizer):
                 # Compute loss and update parameters.
                 Qloss, Vloss, QVloss, totloss = compute_td_loss(
                 #totloss = compute_td_loss(
-                    batch_size, agent, replay, discount_factor, optimizer)
+                    batch_size, agent, replay, discount_factor, optimizer, training_steps)
                 #Vloss = compute_td_Vloss(
                 #    batch_size, agent, replay, discount_factor, Voptimizer)
                 Qlosses.append(Qloss.data[0])
@@ -313,11 +330,13 @@ def train(agent, env, actions, optimizer):
         if training_steps % target_update_frequency == 0:
             agent.update_target()
 
-        model_path = 'outputs/models/NELQ_' + str(training_steps)
-        p_path = 'outputs/plots/NELQ_plot_' + str(training_steps) + '.png'
+        #model_path = 'outputs/models/NELQ_' + str(training_steps)
+        model_path = m_dir + '/NELQ_' + str(training_steps)
+        #p_path = 'outputs/plots/NELQ_plot_' + str(training_steps) + '.png'
+        p_path = p_dir + '/NELQ_plot_' + str(training_steps) + '.png'
 
         if training_steps % num_steps_save_training_run == 0:
-            save_training_run(Qlosses, Vlosses, QVlosses, Totlosses, rewards, agent, save_fn, model_path, p_path)
+            save_training_run(Qlosses, Vlosses, QVlosses, Totlosses, rewards, agent, save_fn, output_dir, model_path, p_path)
             #save_training_run(Totlosses, rewards, agent, save_fn, model_path, p_path)
 
     position = agent.position()
@@ -328,19 +347,17 @@ def train(agent, env, actions, optimizer):
         action, reward = agent.step()
         painter.draw()
 
-    with open('outputs/eval_reward.pkl', 'w') as f:
-        cPickle.dump(eval_reward, f)
+#    with open('outputs/eval_reward.pkl', 'w') as f:
+#        cPickle.dump(eval_reward, f)
 
-    save_training_run(Qlosses, Vlosses, QVlosses, Totlosses, rewards, agent, save_fn, model_path, p_path)
+    save_training_run(Qlosses, Vlosses, QVlosses, Totlosses, rewards, agent, save_fn, output_dir, model_path, p_path)
     #save_training_run(Totlosses, rewards, agent, save_fn, model_path, p_path)
     # print(eval_reward)
 
 
 # cumulative reward for training and test
 
-def setup_output_dir():
-    m_dir = 'outputs/models'
-    p_dir = 'outputs/plots'
+def setup_output_dir(m_dir, p_dir):
 
     if not os.path.exists(m_dir):
         os.makedirs(m_dir)
@@ -348,21 +365,29 @@ def setup_output_dir():
         os.makedirs(p_dir)
 
 def main():
-    env = Environment(config2)
-    from agent import actions
-    state_size = (config2.vision_range*2 + 1)**2 * config2.color_num_dims + config2.scent_num_dims + len(actions)
+
+
+    for i in range(5):
+
+    	output_dir = 'QVloss offpol/outputs_' + str(i) + '/'
+    	m_dir = output_dir + 'models'
+    	p_dir = output_dir + 'plots'
+
+    	env = Environment(config2)
+    	from agent import actions
+    	state_size = (config2.vision_range*2 + 1)**2 * config2.color_num_dims + config2.scent_num_dims + len(actions)
     #state_size = (config2.vision_range*2 + 1)**2 * config2.color_num_dims + config2.scent_num_dims
-    agent = RLCoupledAgent(env, state_size=state_size)
+    	agent = RLCoupledAgent(env, state_size=state_size)
 
     # TODO: need to initialize the weights correctly
-    Optimizer = optim.Adam(list(agent.Qpolicy.parameters()) + list(agent.Vpolicy.parameters()),lr=agent_config['learning_rate'])
+    	Optimizer = optim.Adam(list(agent.Qpolicy.parameters()) + list(agent.Vpolicy.parameters()),lr=agent_config['learning_rate'])
     #Qoptimizer = optim.Adam(agent.Qpolicy.parameters(),
     #    lr=agent_config['learning_rate'])
     #optim.Adam(agent.Vpolicy.parameters(),
     #    lr=agent_config['learning_rate'])
 
-    setup_output_dir()
-    train(agent, env, [0, 1, 2, 3], Optimizer)
+    	setup_output_dir(m_dir,p_dir)
+    	train(agent, env, [0, 1, 2, 3], Optimizer,output_dir,m_dir,p_dir)
 
 
 if __name__ == '__main__':

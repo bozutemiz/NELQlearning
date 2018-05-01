@@ -197,12 +197,12 @@ def train(agent, env, actions, optimizer, output_dir, m_dir, p_dir):
                     batch_size, agent, replay, discount_factor, optimizer)
                 losses.append(loss.data[0])
 
-        if training_steps % 200 == 0 and training_steps > 0:
+        if training_steps % 10000 == 0 and training_steps > 0:
             print('step = ', training_steps)
             print("loss = ", loss.data[0])
             print("train reward = ", tr_reward)
             print('')
-            if training_steps < 100000:
+            if training_steps < 50000:
                 plt_fn(training_steps, rewards_100, losses)
             elif training_steps % 50000 == 0:
                 plt_fn(training_steps, rewards_100, losses)
@@ -247,7 +247,7 @@ def main():
 
     for i in range(10):
 
-        output_dir = 'outputs_' + str(i) + '/'
+        output_dir = 'baseline/outputs_' + str(i) + '/'
         m_dir = output_dir + 'models'
         p_dir = output_dir + 'plots'
 
