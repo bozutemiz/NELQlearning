@@ -167,8 +167,8 @@ def get_epsilon(i, EPS_START, EPS_END, EPS_DECAY_START, EPS_DECAY_END):
     return epsilon
 
 
-def save_training_run(Qlosses, Vlosses, QVlosses, totlosses, rewards, agent, save_fn, model_path, plot_path, n):
-    fname = 'outputs/' + str(n) + '_train_stats.pkl'
+def save_training_run(Qlosses, Vlosses, QVlosses, totlosses, rewards, agent, save_fn, model_path, plot_path, target_update_frequency, n):
+    fname = 'outputs/' + str(target_update_frequency) + '_' + str(n) + '_train_stats.pkl'
     with open(fname, 'wb') as f:
         cPickle.dump((Qlosses, Vlosses, QVlosses, totlosses, rewards), f)
 
@@ -177,7 +177,7 @@ def save_training_run(Qlosses, Vlosses, QVlosses, totlosses, rewards, agent, sav
     #save_fn(plot_path)
 
 
-def train(agent, env, actions, optimizer, n):
+def train(agent, env, actions, optimizer, target_update_frequency, n):
     EPS_START = 1.
     EPS_END = .1
     EPS_DECAY_START = 1000.
@@ -187,7 +187,7 @@ def train(agent, env, actions, optimizer, n):
         return get_epsilon(i, EPS_START, EPS_END, EPS_DECAY_START, EPS_DECAY_END)
     num_steps_save_training_run = train_config['num_steps_save_training_run']
     policy_update_frequency = train_config['policy_update_frequency']
-    target_update_frequency = train_config['target_update_frequency']
+    #target_update_frequency = #train_config['target_update_frequency']
     eval_frequency = train_config['eval_frequency']
     batch_size = train_config['batch_size']
     training_steps = 0
@@ -253,7 +253,8 @@ def train(agent, env, actions, optimizer, n):
                 Totlosses.append(totloss.data[0])
 
         # Update target with policy network weights
-        if training_steps % target_update_frequency == 0:
+        if training_steps % 1000 == 0:
+        # if training_steps % target_update_frequency == 0:
             agent.update_target()
 
         
@@ -267,11 +268,11 @@ def train(agent, env, actions, optimizer, n):
         #         plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses, Totlosses)
 
 
-        model_path = 'outputs/models/' + str(n) + '_NELQ_' + str(training_steps)
-        p_path = 'outputs/plots/'+ str(n) + '_NELQ_plot_' + str(training_steps) + '.png'
+        model_path = 'outputs/models/' + str(target_update_frequency) + '_' + str(n) + '_NELQ_' + str(training_steps)
+        p_path = 'outputs/plots/'+ str(target_update_frequency) + '_' + str(n) + '_NELQ_plot_' + str(training_steps) + '.png'
 
         if training_steps % num_steps_save_training_run == 0:
-            save_training_run(Qlosses, Vlosses, QVlosses, Totlosses, rewards, agent, save_fn, model_path, p_path, n)
+            save_training_run(Qlosses, Vlosses, QVlosses, Totlosses, rewards, agent, save_fn, model_path, p_path, target_update_frequency, n)
 
     position = agent.position()
     painter = nel.MapVisualizer(env.simulator, config2, (
@@ -281,26 +282,26 @@ def train(agent, env, actions, optimizer, n):
         action, reward = agent.step()
         painter.draw()
 
-    fname = 'outputs/' + str(n) + '_eval_reward.pkl'
+    fname = 'outputs/' + str(target_update_frequency) + '_' + str(n) + '_eval_reward.pkl'
     with open(fname, 'w') as f:
         cPickle.dump(eval_reward, f)
 
-    p_path = 'outputs/plots/'+ str(n) + '_NELQ_plot_' + str(max_steps) + '.png'
+    p_path = 'outputs/plots/'+ str(target_update_frequency) + '_' + str(n) + '_NELQ_plot_' + str(max_steps) + '.png'
     plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses, Totlosses)
-    save_training_run(Qlosses, Vlosses, QVlosses, Totlosses, rewards, agent, save_fn, model_path, p_path, n)
+    save_training_run(Qlosses, Vlosses, QVlosses, Totlosses, rewards, agent, save_fn, model_path, p_path, target_update_frequency, n)
     save_fn(p_path)
 
 # cumulative reward for training and test
-def setup_output_dir(n):
-    m_dir = 'outputs/models/' + str(n) + "-run for 10,000" 
-    p_dir = 'outputs/plots/' + str(n) + "-run for 10,000"
+def setup_output_dir(target_update_frequency, n):
+    m_dir = 'outputs/models/' + str(target_update_frequency) + '_' + str(n) + "-run for 10,000" 
+    p_dir = 'outputs/plots/' + str(target_update_frequency) + '_' + str(n) + "-run for 10,000"
 
     if not os.path.exists(m_dir):
         os.makedirs(m_dir)
     if not os.path.exists(p_dir):
         os.makedirs(p_dir)
 
-def main(n):
+def main(target_update_frequency, n):
     env = Environment(config2)
     from agent import actions
     state_size = (config2.vision_range*2 + 1)**2 * config2.color_num_dims + config2.scent_num_dims + len(actions)
@@ -309,8 +310,8 @@ def main(n):
     # TODO: need to initialize the weights correctly
     Optimizer = optim.Adam(list(agent.Qpolicy.parameters()) + list(agent.Vpolicy.parameters()),lr=agent_config['learning_rate'])
 
-    setup_output_dir(n)
-    train(agent, env, [0, 1, 2, 3], Optimizer, n)
+    setup_output_dir(target_update_frequency, n)
+    train(agent, env, [0, 1, 2, 3], Optimizer, target_update_frequency, n)
 
 
 # if __name__ == '__main__':
