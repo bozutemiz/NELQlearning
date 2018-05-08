@@ -1,6 +1,7 @@
-from agent import RLAgent, RLCoupledAgent
+from agent import RLCoupledAgent
 from environment import Environment
-from config import config2, agent_config, train_config
+#from config import config2, agent_config, train_config
+from config import agent_config, train_config
 from plot import plot_reward
 import nel
 
@@ -177,7 +178,7 @@ def save_training_run(Qlosses, Vlosses, QVlosses, totlosses, rewards, agent, sav
     #save_fn(plot_path)
 
 
-def train(agent, env, actions, optimizer, target_update_frequency, n):
+def train(agent, env, actions, optimizer, target_update_frequency, n, config2):
     EPS_START = 1.
     EPS_END = .1
     EPS_DECAY_START = 1000.
@@ -254,19 +255,11 @@ def train(agent, env, actions, optimizer, target_update_frequency, n):
 
         # Update target with policy network weights
         if training_steps % 1000 == 0:
-        # if training_steps % target_update_frequency == 0:
             agent.update_target()
 
-        
-        #     plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses, Totlosses)
         if training_steps % 5000 == 0 and training_steps > 0:
-        #     if training_steps < 100000:
             print("training step:", training_steps)
-        #         if training_steps % 2000 == 0 and training_steps > 0:
-        #         	plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses, Totlosses)
-        #     elif training_steps % 50000 == 0:
-        #         plt_fn(training_steps, rewards, Qlosses, Vlosses, QVlosses, Totlosses)
-
+        
 
         model_path = 'outputs/models/' + str(target_update_frequency) + '_' + str(n) + '_NELQ_' + str(training_steps)
         p_path = 'outputs/plots/'+ str(target_update_frequency) + '_' + str(n) + '_NELQ_plot_' + str(training_steps) + '.png'
@@ -301,17 +294,53 @@ def setup_output_dir(target_update_frequency, n):
     if not os.path.exists(p_dir):
         os.makedirs(p_dir)
 
-def main(target_update_frequency, n):
-    env = Environment(config2)
-    from agent import actions
-    state_size = (config2.vision_range*2 + 1)**2 * config2.color_num_dims + config2.scent_num_dims + len(actions)
-    agent = RLCoupledAgent(env, state_size=state_size)
+def main(target_update_frequency):
+    for i in range(10):
+        print(str(i+1)+'th run started...')
+        random.seed(i)
+        np.random.seed(i)
+        torch.manual_seed(i)
 
-    # TODO: need to initialize the weights correctly
-    Optimizer = optim.Adam(list(agent.Qpolicy.parameters()) + list(agent.Vpolicy.parameters()),lr=agent_config['learning_rate'])
+        items = []
+        items.append(nel.Item("banana", [0.0, 1.0, 0.0], [0.0, 1.0, 0.0], False))
+        items.append(nel.Item("onion", [1.0, 0.0, 0.0], [1.0, 0.0, 0.0], False))
+        items.append(nel.Item("jellybean", [0.0, 0.0, 1.0], [0.0, 0.0, 1.0], True))
 
-    setup_output_dir(target_update_frequency, n)
-    train(agent, env, [0, 1, 2, 3], Optimizer, target_update_frequency, n)
+        # specify the intensity and interaction function parameters
+        intensity_fn_args = [-3.3, -3.7, -3.0]
+        interaction_fn_args = [len(items)]
+        interaction_fn_args.extend([10.0, 100.0, 0.0, -6.0])     # parameters for interaction between item 0 and item 0
+        interaction_fn_args.extend([100.0, 0.0, -6.0, -6.0])     # parameters for interaction between item 0 and item 1
+        interaction_fn_args.extend([10.0, 100.0, 1.0, -100.0])   # parameters for interaction between item 0 and item 2
+        interaction_fn_args.extend([100.0, 0.0, -6.0, -6.0])     # parameters for interaction between item 1 and item 0
+        interaction_fn_args.extend([10.0, 0.0, -2.0, 0.0])       # parameters for interaction between item 1 and item 1
+        interaction_fn_args.extend([100.0, 0.0, -100.0, -100.0]) # parameters for interaction between item 1 and item 2
+        interaction_fn_args.extend([10.0, 100.0, 1.0, -100.0])   # parameters for interaction between item 2 and item 0
+        interaction_fn_args.extend([100.0, 0.0, -100.0, -100.0]) # parameters for interaction between item 2 and item 1
+        interaction_fn_args.extend([10.0, 100.0, 0.0, -6.0])     # parameters for interaction between item 2 and item 2
+
+        config2 = nel.SimulatorConfig(seed=i,
+            max_steps_per_movement=1, vision_range=5,
+            patch_size=32, gibbs_num_iter=10, items=items,
+            agent_color=[1.0, 0.5, 0.5],
+            collision_policy=nel.MovementConflictPolicy.FIRST_COME_FIRST_SERVED,
+            decay_param=0.4, diffusion_param=0.14,
+            deleted_item_lifetime=2000,
+            intensity_fn=nel.IntensityFunction.CONSTANT,
+            intensity_fn_args=intensity_fn_args,
+            interaction_fn=nel.InteractionFunction.PIECEWISE_BOX,
+            interaction_fn_args=interaction_fn_args)
+
+        env = Environment(config2)
+        from agent import actions
+        state_size = (config2.vision_range*2 + 1)**2 * config2.color_num_dims + config2.scent_num_dims + len(actions)
+        agent = RLCoupledAgent(env, state_size=state_size)
+
+        Optimizer = optim.Adam(list(agent.Qpolicy.parameters()) + list(agent.Vpolicy.parameters()),lr=agent_config['learning_rate'])
+
+        setup_output_dir(target_update_frequency, i)
+        train(agent, env, [0, 1, 2, 3], Optimizer, target_update_frequency, i, config2)
+        print(str(i+1)+'th run complete!')
 
 
 # if __name__ == '__main__':
