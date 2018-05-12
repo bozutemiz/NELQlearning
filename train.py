@@ -1,6 +1,7 @@
 from agent import RLAgent
 from environment import Environment
-from config import config2, agent_config, train_config
+#from config import config2, agent_config, train_config
+from config import agent_config, train_config
 from plot import plot_reward
 import nel
 
@@ -95,7 +96,6 @@ def plot_setup():
 
     def save(fname):
         fig.savefig(fname)
-
     return update, save
 
 
@@ -133,7 +133,7 @@ def save_training_run(losses, rewards, agent, save_fn, output_dir, model_path, p
     save_fn(plot_path)
 
 
-def train(agent, env, actions, optimizer, output_dir, m_dir, p_dir):
+def train(agent, env, actions, optimizer, output_dir, m_dir, p_dir,conf):
     EPS_START = 1.
     EPS_END = .1
     EPS_DECAY_START = 1000.
@@ -203,7 +203,8 @@ def train(agent, env, actions, optimizer, output_dir, m_dir, p_dir):
             print("train reward = ", tr_reward)
             print('')
             if training_steps < 50000:
-                plt_fn(training_steps, rewards_100, losses)
+                if training_steps % 10000 == 0 and training_steps > 0:
+                    plt_fn(training_steps, rewards_100, losses)
             elif training_steps % 50000 == 0:
                 plt_fn(training_steps, rewards_100, losses)
 
@@ -220,7 +221,7 @@ def train(agent, env, actions, optimizer, output_dir, m_dir, p_dir):
             save_training_run(losses, rewards, agent, save_fn, output_dir, model_path, p_path)
 
     position = agent.position()
-    painter = nel.MapVisualizer(env.simulator, config2, (
+    painter = nel.MapVisualizer(env.simulator, conf, (
         position[0] - 70, position[1] - 70), (position[0] + 70, position[1] + 70))
     for _ in range(100):
         s1 = agent.get_state()
@@ -247,7 +248,42 @@ def main():
 
     for i in range(10):
 
-        output_dir = 'baseline/outputs_' + str(i) + '/'
+
+        random.seed(i)
+        np.random.seed(i)
+        torch.manual_seed(i)
+
+        items = []
+        items.append(nel.Item("banana", [0.0, 1.0, 0.0], [0.0, 1.0, 0.0], False))
+        items.append(nel.Item("onion", [1.0, 0.0, 0.0], [1.0, 0.0, 0.0], False))
+        items.append(nel.Item("jellybean", [0.0, 0.0, 1.0], [0.0, 0.0, 1.0], True))
+
+        # specify the intensity and interaction function parameters
+        intensity_fn_args = [-3.3, -3.7, -3.0]
+        interaction_fn_args = [len(items)]
+        interaction_fn_args.extend([10.0, 100.0, 0.0, -6.0])     # parameters for interaction between item 0 and item 0
+        interaction_fn_args.extend([100.0, 0.0, -6.0, -6.0])     # parameters for interaction between item 0 and item 1
+        interaction_fn_args.extend([10.0, 100.0, 1.0, -100.0])   # parameters for interaction between item 0 and item 2
+        interaction_fn_args.extend([100.0, 0.0, -6.0, -6.0])     # parameters for interaction between item 1 and item 0
+        interaction_fn_args.extend([10.0, 0.0, -2.0, 0.0])         # parameters for interaction between item 1 and item 1
+        interaction_fn_args.extend([100.0, 0.0, -100.0, -100.0]) # parameters for interaction between item 1 and item 2
+        interaction_fn_args.extend([10.0, 100.0, 1.0, -100.0])   # parameters for interaction between item 2 and item 0
+        interaction_fn_args.extend([100.0, 0.0, -100.0, -100.0]) # parameters for interaction between item 2 and item 1
+        interaction_fn_args.extend([10.0, 100.0, 0.0, -6.0])     # parameters for interaction between item 2 and item 2
+
+        config2 = nel.SimulatorConfig(seed=i,
+            max_steps_per_movement=1, vision_range=5,
+            patch_size=32, gibbs_num_iter=10, items=items,
+            agent_color=[1.0, 0.5, 0.5],
+            collision_policy=nel.MovementConflictPolicy.FIRST_COME_FIRST_SERVED,
+            decay_param=0.4, diffusion_param=0.14,
+            deleted_item_lifetime=2000,
+            intensity_fn=nel.IntensityFunction.CONSTANT,
+            intensity_fn_args=intensity_fn_args,
+            interaction_fn=nel.InteractionFunction.PIECEWISE_BOX,
+            interaction_fn_args=interaction_fn_args)
+
+        output_dir = 'baseline_seed_2/outputs_' + str(i) + '/' #'_20m_2/'
         m_dir = output_dir + 'models'
         p_dir = output_dir + 'plots'
 
@@ -260,7 +296,7 @@ def main():
             lr=agent_config['learning_rate'])
 
         setup_output_dir(m_dir,p_dir)
-        train(agent, env, [0, 1, 2, 3], optimizer,output_dir,m_dir,p_dir)
+        train(agent, env, [0, 1, 2, 3], optimizer,output_dir,m_dir,p_dir, config2)
 
 
 if __name__ == '__main__':

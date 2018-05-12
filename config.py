@@ -25,36 +25,19 @@ config1 = nel.SimulatorConfig(
     interaction_fn=nel.InteractionFunction.PIECEWISE_BOX,
     interaction_fn_args=interaction_fn_args1)
 
-items = []
-items.append(nel.Item("banana", [0.0, 1.0, 0.0], [0.0, 1.0, 0.0], False))
-items.append(nel.Item("onion", [1.0, 0.0, 0.0], [1.0, 0.0, 0.0], False))
-items.append(nel.Item("jellybean", [0.0, 0.0, 1.0], [0.0, 0.0, 1.0], True))
-
-# specify the intensity and interaction function parameters
-intensity_fn_args = [-3.3, -3.7, -3.0]
-interaction_fn_args = [len(items)]
-interaction_fn_args.extend([10.0, 100.0, 0.0, -6.0])     # parameters for interaction between item 0 and item 0
-interaction_fn_args.extend([100.0, 0.0, -6.0, -6.0])     # parameters for interaction between item 0 and item 1
-interaction_fn_args.extend([10.0, 100.0, 1.0, -100.0])   # parameters for interaction between item 0 and item 2
-interaction_fn_args.extend([100.0, 0.0, -6.0, -6.0])     # parameters for interaction between item 1 and item 0
-interaction_fn_args.extend([10.0, 0.0, -2.0, 0.0])         # parameters for interaction between item 1 and item 1
-interaction_fn_args.extend([100.0, 0.0, -100.0, -100.0]) # parameters for interaction between item 1 and item 2
-interaction_fn_args.extend([10.0, 100.0, 1.0, -100.0])   # parameters for interaction between item 2 and item 0
-interaction_fn_args.extend([100.0, 0.0, -100.0, -100.0]) # parameters for interaction between item 2 and item 1
-interaction_fn_args.extend([10.0, 100.0, 0.0, -6.0])     # parameters for interaction between item 2 and item 2
 
 
-config2 = nel.SimulatorConfig(seed=random.randint(0,4294967295),
-    max_steps_per_movement=1, vision_range=5,
-    patch_size=32, gibbs_num_iter=10, items=items,
-    agent_color=[1.0, 0.5, 0.5],
-    collision_policy=nel.MovementConflictPolicy.FIRST_COME_FIRST_SERVED,
-    decay_param=0.4, diffusion_param=0.14,
-    deleted_item_lifetime=2000,
-    intensity_fn=nel.IntensityFunction.CONSTANT,
-    intensity_fn_args=intensity_fn_args,
-    interaction_fn=nel.InteractionFunction.PIECEWISE_BOX,
-    interaction_fn_args=interaction_fn_args)
+#config2 = nel.SimulatorConfig(seed=random.randint(0,4294967295),
+#    max_steps_per_movement=1, vision_range=5,
+#    patch_size=32, gibbs_num_iter=10, items=items,
+#    agent_color=[1.0, 0.5, 0.5],
+#    collision_policy=nel.MovementConflictPolicy.FIRST_COME_FIRST_SERVED,
+#    decay_param=0.4, diffusion_param=0.14,
+#    deleted_item_lifetime=2000,
+#    intensity_fn=nel.IntensityFunction.CONSTANT,
+#    intensity_fn_args=intensity_fn_args,
+#    interaction_fn=nel.InteractionFunction.PIECEWISE_BOX,
+#    interaction_fn_args=interaction_fn_args)
 
 agent_config = {
     'history_len': 2,
@@ -69,5 +52,5 @@ train_config={
     'target_update_frequency': 1000,
     'policy_update_frequency': 2,
     'replay_buffer_capacity': 10000,
-    'num_steps_save_training_run': 25000
+    'num_steps_save_training_run': 100000
     }
